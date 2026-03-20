@@ -82,21 +82,105 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 
 ---
 
-## v0.23.3 — Integration & Performance
+## v0.23.3 — MIDI, RT Infrastructure & DSP Gaps
+
+### MIDI foundation (`midi` module)
+
+Port from shruti's battle-tested implementation (`shruti-session/src/midi.rs`,
+`shruti-instruments/src/voice.rs`, `shruti-instruments/src/routing.rs`) and
+improve upon it. Nada becomes the canonical MIDI crate for the ecosystem —
+shruti, hoosh, jalwa, and tarang all consume `nada::midi`.
+
+#### Core types (`midi`)
+- [ ] `NoteEvent` — note on/off with position (u64 frames), duration, note 0-127, velocity 0-127, channel 0-15
+- [ ] `ControlChange` — CC number, value, channel, position
+- [ ] `MidiClip` — sorted note/CC container with `add_note()`, `add_cc()`, `notes_at()`, `note_ons_at()`, `note_offs_at()`
+- [ ] `MidiEvent` enum — unified event type (NoteOn, NoteOff, CC, PitchBend, Aftertouch, ProgramChange)
+      _Improvement: shruti has separate structs; nada unifies into a single enum for cleaner pattern matching_
+
+#### MIDI 2.0 / UMP (`midi::v2`)
+- [ ] `NoteOnV2`, `NoteOffV2` — 16-bit velocity, per-note attributes (type + data)
+- [ ] `ControlChangeV2` — 32-bit value (full resolution)
+- [ ] `PerNotePitchBend`, `PerNoteController` — MPE support
+- [ ] `ChannelPressureV2`, `PolyPressureV2`, `PitchBendV2` — 32-bit resolution
+- [ ] `UmpMessageType` enum — Utility, SystemCommon, Midi1ChannelVoice, Data64, Midi2ChannelVoice, Data128
+
+#### MIDI 1.0 ↔ 2.0 translation (`midi::translate`)
+- [ ] `velocity_7_to_16()` / `velocity_16_to_7()` — MIDI 2.0 spec scaling (v << 9 | v << 2 | v >> 5)
+- [ ] `cc_7_to_32()` / `cc_32_to_7()` — full 32-bit CC range
+- [ ] `pitch_bend_14_to_32()` / `pitch_bend_32_to_14()`
+- [ ] `note_event_to_v2()` / `note_on_v2_to_event()` — event conversion
+- [ ] `cc_to_v2()` / `cc_v2_to_cc()` — CC conversion
+- [ ] Roundtrip tests for all conversions (port shruti's 10+ tests)
+
+#### Voice management (`midi::voice`)
+- [ ] `VoiceState` — Idle, Active, Releasing
+- [ ] `Voice` — per-voice state: note, velocity, channel, envelope_level, age, pitch_bend, pressure, brightness
+- [ ] `Voice::frequency()` — MIDI note → Hz (12-TET, A4=440)
+- [ ] `Voice::apply_per_note_cc()` — CC#74 brightness routing
+- [ ] `VoiceStealMode` — Oldest, Quietest, Lowest, None
+- [ ] `VoiceManager` — polyphonic voice pool with allocation, stealing, release, age tracking
+      _Improvement: decouple oscillator state (phase accumulators) from voice — nada provides voice management, consumers own synthesis state_
+
+#### Routing & mapping (`midi::routing`)
+- [ ] `VelocityCurve` — Linear, Soft (sqrt), Hard (square), Fixed(u8)
+- [ ] `MidiRoute` — channel filter, note range, velocity curve, `filter_event()`
+      _Improvement: make MidiRoute generic over event type (not tied to track UUIDs) so it works outside DAW context_
+- [ ] `CcMapping` — CC number → parameter range mapping with `map_value()` (7-bit) and `map_value_32()` (32-bit)
+
+#### Improvements over shruti's implementation
+- [ ] `MidiClip::events_in_range(start, end)` — range query using binary search (shruti scans linearly)
+- [ ] `MidiClip::merge(other)` — combine clips maintaining sort order
+- [ ] `MidiClip::transpose(semitones)` — shift all notes
+- [ ] `MidiClip::quantize(grid_frames)` — snap positions to grid
+- [ ] `#[non_exhaustive]` on all enums for forward compat
+- [ ] Property-based tests (proptest: random events, roundtrip translation, sort invariants)
+
+### RT infrastructure (from shruti-engine)
+
+Generic real-time building blocks that every audio app needs.
+
+#### Lock-free metering (`meter`)
+- [ ] `PeakMeter` — stereo peak levels via `AtomicU32` (f32 bit patterns, no mutex)
+- [ ] `MeterBank` — growable slot bank, pre-allocated
+- [ ] `SharedMeterBank` — `Arc`-wrapped for multi-thread sharing
+      _Source: shruti-engine/src/meter.rs — production-proven, extract as-is_
+
+#### Audio graph (`graph`)
+- [ ] `AudioNode` trait — name, num_inputs, num_outputs, `process()`, `is_finished()`
+- [ ] `Graph` — non-RT builder: add nodes, connect edges
+- [ ] `ExecutionPlan` — compiled topological order (Kahn's algorithm, cycle detection)
+- [ ] `GraphProcessor` — RT-thread processor with double-buffered plan swapping via `try_lock()` fallback
+- [ ] `NodeId` — atomic ID generator
+      _Source: shruti-engine/src/graph/ — extract core traits/planner, leave concrete nodes in consumers_
+
+#### Ring-buffer recording (`capture`)
+- [ ] `RecordManager` — lock-free ring buffer (rtrb) → accumulator thread → output
+- [ ] `LoopRecordManager` — loop-aware recording with sentinel-based take splitting
+      _Source: shruti-engine/src/record.rs — generic RT→disk pipeline_
+
+### DSP gaps (from shruti-dsp)
+- [ ] `StereoPanner` — constant-power panning (shruti-dsp `effects/pan.rs`)
+- [ ] `EnvelopeLimiter` — soft-knee limiter with envelope follower (shruti-dsp `effects/limiter.rs`)
+- [ ] `DynamicsAnalysis` — peak, RMS, true peak, crest factor, dynamic range (shruti-dsp `analysis/dynamics.rs`)
+- [ ] FFT spectrum — radix-2 FFT replacing O(n²) DFT (shruti-dsp `analysis/spectral.rs`)
+
+---
+
+## v0.24.3 — Integration & Performance
 
 ### Consumer integration
-- [ ] shruti adopts nada (replace shruti-engine + shruti-dsp audio math)
+- [ ] shruti adopts nada (replace shruti-engine audio math, shruti-dsp, shruti-session MIDI types)
 - [ ] jalwa adopts nada (replace internal playback buffer + EQ)
 - [ ] aethersafta adopts nada (replace PipeWire capture + mixer stub)
+- [ ] hoosh uses `nada::midi` for music token preprocessing
 
 ### Performance
 - [ ] Zero-copy buffer views (borrow slices for read-only DSP)
 - [ ] Buffer pool (reuse allocations across frames — arena allocator)
 - [ ] Parallel DSP chain (rayon for independent effects)
-- [ ] Lock-free ring buffer for capture → processing handoff
 
 ### Analysis
-- [ ] rustfft backend (O(n log n) FFT — replace DFT for production)
 - [ ] STFT (short-time Fourier transform) for spectrograms
 - [ ] Full EBU R128 loudness (K-weighting + gating)
 - [ ] Chromagram (pitch class distribution)
@@ -110,11 +194,12 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 
 ## v1.0.0 Criteria
 
-- [ ] AudioBuffer, AudioClock, Spectrum APIs frozen
+- [ ] AudioBuffer, AudioClock, Spectrum, MIDI APIs frozen
 - [ ] All DSP effects match reference implementations (within 0.01 dB)
 - [ ] SIMD on x86_64 (SSE2+AVX2) and aarch64 (NEON)
 - [ ] PipeWire capture/output stable
 - [ ] Sinc resampling passing SRC quality tests
+- [ ] MIDI 1.0 + 2.0 types, translation, voice management stable
 - [ ] At least 3 downstream consumers (shruti, jalwa, aethersafta)
 - [ ] 90%+ test coverage
 - [ ] docs.rs documentation complete
@@ -132,6 +217,13 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 - [ ] Pitch shifting (phase vocoder)
 - [ ] Time stretching (WSOLA or phase vocoder)
 
+### MIDI advanced
+- [ ] SMF (Standard MIDI File) read/write
+- [ ] MIDI clock / sync (MTC, SPP)
+- [ ] SysEx message handling
+- [ ] MPE (MIDI Polyphonic Expression) zone management
+- [ ] MIDI tokenization for music LLMs (port from shruti-ml `tokenizer.rs`)
+
 ### Platform
 - [ ] CoreAudio backend (macOS)
 - [ ] WASAPI backend (Windows)
@@ -148,7 +240,7 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 ## Non-goals
 
 - **Audio I/O (file read/write)** — that's tarang (decode) and symphonia (pure Rust decode)
-- **MIDI** — that's shruti's domain
 - **Plugin hosting (VST/CLAP/LV2)** — that's shruti
 - **Music composition / sequencing** — that's shruti
 - **Streaming protocols (RTMP/SRT)** — that's aethersafta
+- **Specific instruments (synth/sampler/drums)** — that's shruti; nada provides voice management, consumers build instruments on top

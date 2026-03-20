@@ -63,6 +63,7 @@ pub mod analysis;
 pub mod buffer;
 pub mod clock;
 pub mod dsp;
+pub mod midi;
 
 #[cfg(feature = "simd")]
 pub(crate) mod simd;
