@@ -1,0 +1,341 @@
+//! Biquad filter primitives — coefficients, per-channel state, processing.
+//!
+//! Implements the standard Robert Bristow-Johnson Audio EQ Cookbook formulas
+//! for all common filter types. Coefficients computed in f64 for precision.
+
+use serde::{Deserialize, Serialize};
+use std::f64::consts::PI;
+
+use crate::buffer::AudioBuffer;
+
+/// Filter type with associated parameters.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum FilterType {
+    LowPass,
+    HighPass,
+    BandPass,
+    Notch,
+    AllPass,
+    Peaking { gain_db: f32 },
+    LowShelf { gain_db: f32 },
+    HighShelf { gain_db: f32 },
+}
+
+/// Biquad filter coefficients (Direct Form II Transposed).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct BiquadCoeffs {
+    pub b0: f64,
+    pub b1: f64,
+    pub b2: f64,
+    pub a1: f64,
+    pub a2: f64,
+}
+
+impl BiquadCoeffs {
+    /// Design filter coefficients using Bristow-Johnson Audio EQ Cookbook.
+    pub fn design(filter_type: FilterType, freq_hz: f32, q: f32, sample_rate: u32) -> Self {
+        let sr = sample_rate as f64;
+        let f0 = (freq_hz as f64).clamp(1.0, sr * 0.499);
+        let q = (q as f64).max(0.01);
+        let w0 = 2.0 * PI * f0 / sr;
+        let cos_w0 = w0.cos();
+        let sin_w0 = w0.sin();
+        let alpha = sin_w0 / (2.0 * q);
+
+        let (b0, b1, b2, a0, a1, a2) = match filter_type {
+            FilterType::LowPass => {
+                let b1 = 1.0 - cos_w0;
+                let b0 = b1 / 2.0;
+                let b2 = b0;
+                (b0, b1, b2, 1.0 + alpha, -2.0 * cos_w0, 1.0 - alpha)
+            }
+            FilterType::HighPass => {
+                let b1 = -(1.0 + cos_w0);
+                let b0 = (1.0 + cos_w0) / 2.0;
+                let b2 = b0;
+                (b0, b1, b2, 1.0 + alpha, -2.0 * cos_w0, 1.0 - alpha)
+            }
+            FilterType::BandPass => {
+                let b0 = alpha;
+                let b1 = 0.0;
+                let b2 = -alpha;
+                (b0, b1, b2, 1.0 + alpha, -2.0 * cos_w0, 1.0 - alpha)
+            }
+            FilterType::Notch => {
+                let b0 = 1.0;
+                let b1 = -2.0 * cos_w0;
+                let b2 = 1.0;
+                (b0, b1, b2, 1.0 + alpha, -2.0 * cos_w0, 1.0 - alpha)
+            }
+            FilterType::AllPass => {
+                let b0 = 1.0 - alpha;
+                let b1 = -2.0 * cos_w0;
+                let b2 = 1.0 + alpha;
+                (b0, b1, b2, 1.0 + alpha, -2.0 * cos_w0, 1.0 - alpha)
+            }
+            FilterType::Peaking { gain_db } => {
+                let a = 10.0f64.powf(gain_db as f64 / 40.0);
+                let b0 = 1.0 + alpha * a;
+                let b1 = -2.0 * cos_w0;
+                let b2 = 1.0 - alpha * a;
+                (b0, b1, b2, 1.0 + alpha / a, -2.0 * cos_w0, 1.0 - alpha / a)
+            }
+            FilterType::LowShelf { gain_db } => {
+                let a = 10.0f64.powf(gain_db as f64 / 40.0);
+                let two_sqrt_a_alpha = 2.0 * a.sqrt() * alpha;
+                let b0 = a * ((a + 1.0) - (a - 1.0) * cos_w0 + two_sqrt_a_alpha);
+                let b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * cos_w0);
+                let b2 = a * ((a + 1.0) - (a - 1.0) * cos_w0 - two_sqrt_a_alpha);
+                let a0 = (a + 1.0) + (a - 1.0) * cos_w0 + two_sqrt_a_alpha;
+                let a1 = -2.0 * ((a - 1.0) + (a + 1.0) * cos_w0);
+                let a2 = (a + 1.0) + (a - 1.0) * cos_w0 - two_sqrt_a_alpha;
+                (b0, b1, b2, a0, a1, a2)
+            }
+            FilterType::HighShelf { gain_db } => {
+                let a = 10.0f64.powf(gain_db as f64 / 40.0);
+                let two_sqrt_a_alpha = 2.0 * a.sqrt() * alpha;
+                let b0 = a * ((a + 1.0) + (a - 1.0) * cos_w0 + two_sqrt_a_alpha);
+                let b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * cos_w0);
+                let b2 = a * ((a + 1.0) + (a - 1.0) * cos_w0 - two_sqrt_a_alpha);
+                let a0 = (a + 1.0) - (a - 1.0) * cos_w0 + two_sqrt_a_alpha;
+                let a1 = 2.0 * ((a - 1.0) - (a + 1.0) * cos_w0);
+                let a2 = (a + 1.0) - (a - 1.0) * cos_w0 - two_sqrt_a_alpha;
+                (b0, b1, b2, a0, a1, a2)
+            }
+        };
+
+        // Normalize by a0
+        Self {
+            b0: b0 / a0,
+            b1: b1 / a0,
+            b2: b2 / a0,
+            a1: a1 / a0,
+            a2: a2 / a0,
+        }
+    }
+
+    /// Unity (pass-through) coefficients.
+    pub fn unity() -> Self {
+        Self {
+            b0: 1.0,
+            b1: 0.0,
+            b2: 0.0,
+            a1: 0.0,
+            a2: 0.0,
+        }
+    }
+}
+
+/// Per-channel biquad state (Direct Form II Transposed).
+#[derive(Debug, Clone, Default)]
+struct BiquadState {
+    z1: f64,
+    z2: f64,
+}
+
+impl BiquadState {
+    fn process(&mut self, input: f64, c: &BiquadCoeffs) -> f64 {
+        let out = c.b0 * input + self.z1;
+        self.z1 = c.b1 * input - c.a1 * out + self.z2;
+        self.z2 = c.b2 * input - c.a2 * out;
+        out
+    }
+}
+
+/// A biquad filter with per-channel state.
+#[derive(Debug, Clone)]
+pub struct BiquadFilter {
+    coeffs: BiquadCoeffs,
+    states: Vec<BiquadState>,
+    filter_type: FilterType,
+    freq_hz: f32,
+    q: f32,
+    sample_rate: u32,
+}
+
+impl BiquadFilter {
+    /// Create a new biquad filter.
+    pub fn new(
+        filter_type: FilterType,
+        freq_hz: f32,
+        q: f32,
+        sample_rate: u32,
+        channels: u32,
+    ) -> Self {
+        Self {
+            coeffs: BiquadCoeffs::design(filter_type, freq_hz, q, sample_rate),
+            states: vec![BiquadState::default(); channels as usize],
+            filter_type,
+            freq_hz,
+            q,
+            sample_rate,
+        }
+    }
+
+    /// Process an entire audio buffer in-place.
+    pub fn process(&mut self, buf: &mut AudioBuffer) {
+        let ch = buf.channels as usize;
+        for frame in 0..buf.frames {
+            for c in 0..ch {
+                let idx = frame * ch + c;
+                let input = buf.samples[idx] as f64;
+                buf.samples[idx] = self.states[c].process(input, &self.coeffs) as f32;
+            }
+        }
+    }
+
+    /// Process a single sample for a given channel.
+    pub fn process_sample(&mut self, sample: f32, channel: usize) -> f32 {
+        if channel < self.states.len() {
+            self.states[channel].process(sample as f64, &self.coeffs) as f32
+        } else {
+            sample
+        }
+    }
+
+    /// Reset all filter state (e.g., on seek).
+    pub fn reset(&mut self) {
+        for s in &mut self.states {
+            s.z1 = 0.0;
+            s.z2 = 0.0;
+        }
+    }
+
+    /// Update filter parameters without resetting state (for smooth automation).
+    pub fn set_params(&mut self, filter_type: FilterType, freq_hz: f32, q: f32) {
+        self.filter_type = filter_type;
+        self.freq_hz = freq_hz;
+        self.q = q;
+        self.coeffs = BiquadCoeffs::design(filter_type, freq_hz, q, self.sample_rate);
+    }
+
+    /// Current filter type.
+    pub fn filter_type(&self) -> FilterType {
+        self.filter_type
+    }
+
+    /// Current center frequency in Hz.
+    pub fn freq_hz(&self) -> f32 {
+        self.freq_hz
+    }
+
+    /// Current Q factor.
+    pub fn q(&self) -> f32 {
+        self.q
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_sine(freq: f32, sample_rate: u32, frames: usize) -> AudioBuffer {
+        let samples: Vec<f32> = (0..frames)
+            .map(|i| (2.0 * std::f32::consts::PI * freq * i as f32 / sample_rate as f32).sin())
+            .collect();
+        AudioBuffer::from_interleaved(samples, 1, sample_rate).unwrap()
+    }
+
+    #[test]
+    fn silence_passthrough() {
+        let mut buf = AudioBuffer::silence(2, 1024, 44100);
+        let mut filt = BiquadFilter::new(FilterType::LowPass, 1000.0, 0.707, 44100, 2);
+        filt.process(&mut buf);
+        assert!(buf.peak() < f32::EPSILON);
+    }
+
+    #[test]
+    fn unity_coeffs_passthrough() {
+        let coeffs = BiquadCoeffs::unity();
+        let mut state = BiquadState::default();
+        let out = state.process(0.5, &coeffs);
+        assert!((out - 0.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn lowpass_attenuates_high_frequencies() {
+        // 10kHz sine through 500Hz low-pass should be heavily attenuated
+        let mut buf = make_sine(10000.0, 44100, 4096);
+        let original_rms = buf.rms();
+        let mut filt = BiquadFilter::new(FilterType::LowPass, 500.0, 0.707, 44100, 1);
+        filt.process(&mut buf);
+        assert!(buf.rms() < original_rms * 0.1, "LP should attenuate 10kHz");
+    }
+
+    #[test]
+    fn highpass_attenuates_low_frequencies() {
+        // 100Hz sine through 5kHz high-pass should be heavily attenuated
+        let mut buf = make_sine(100.0, 44100, 4096);
+        let original_rms = buf.rms();
+        let mut filt = BiquadFilter::new(FilterType::HighPass, 5000.0, 0.707, 44100, 1);
+        filt.process(&mut buf);
+        assert!(buf.rms() < original_rms * 0.1, "HP should attenuate 100Hz");
+    }
+
+    #[test]
+    fn peaking_boosts_target_frequency() {
+        let mut buf = make_sine(1000.0, 44100, 4096);
+        let original_rms = buf.rms();
+        let mut filt =
+            BiquadFilter::new(FilterType::Peaking { gain_db: 12.0 }, 1000.0, 1.0, 44100, 1);
+        filt.process(&mut buf);
+        // After transient settles, RMS should be higher
+        assert!(buf.rms() > original_rms * 1.5, "Peaking should boost 1kHz");
+    }
+
+    #[test]
+    fn notch_attenuates_target_frequency() {
+        let mut buf = make_sine(1000.0, 44100, 4096);
+        let original_rms = buf.rms();
+        let mut filt = BiquadFilter::new(FilterType::Notch, 1000.0, 10.0, 44100, 1);
+        filt.process(&mut buf);
+        assert!(
+            buf.rms() < original_rms * 0.2,
+            "Notch should attenuate 1kHz"
+        );
+    }
+
+    #[test]
+    fn reset_clears_state() {
+        let mut filt = BiquadFilter::new(FilterType::LowPass, 1000.0, 0.707, 44100, 2);
+        let mut buf = make_sine(440.0, 44100, 256);
+        filt.process(&mut buf);
+        filt.reset();
+        // After reset, process_sample should behave as fresh
+        let out = filt.process_sample(0.0, 0);
+        assert!(out.abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn set_params_updates_coefficients() {
+        let mut filt = BiquadFilter::new(FilterType::LowPass, 1000.0, 0.707, 44100, 1);
+        filt.set_params(FilterType::HighPass, 5000.0, 1.0);
+        assert_eq!(filt.filter_type(), FilterType::HighPass);
+        assert!((filt.freq_hz() - 5000.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn stereo_channels_independent() {
+        let samples = vec![1.0, 0.0, 0.5, 0.0, 0.25, 0.0, 0.0, 0.0];
+        let mut buf = AudioBuffer::from_interleaved(samples, 2, 44100).unwrap();
+        let mut filt = BiquadFilter::new(FilterType::LowPass, 10000.0, 0.707, 44100, 2);
+        filt.process(&mut buf);
+        // Right channel was all zeros, should remain near zero
+        for frame in 0..buf.frames {
+            assert!(
+                buf.samples[frame * 2 + 1].abs() < 0.01,
+                "Right channel should stay near zero"
+            );
+        }
+    }
+
+    #[test]
+    fn extreme_q_does_not_panic() {
+        // Very high Q and edge frequencies should not produce NaN/Inf
+        let mut buf = make_sine(440.0, 44100, 256);
+        let mut filt = BiquadFilter::new(FilterType::BandPass, 20000.0, 100.0, 44100, 1);
+        filt.process(&mut buf);
+        assert!(buf.samples.iter().all(|s| s.is_finite()));
+    }
+}

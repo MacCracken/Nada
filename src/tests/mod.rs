@@ -1,5 +1,7 @@
 //! Integration tests for nada.
 
+#![allow(deprecated)]
+
 use crate::buffer::{AudioBuffer, mix, resample_linear};
 use crate::clock::AudioClock;
 use crate::dsp;
@@ -63,4 +65,127 @@ fn db_roundtrip() {
     let db = dsp::amplitude_to_db(amp);
     let back = dsp::db_to_amplitude(db);
     assert!((amp - back).abs() < 0.001);
+}
+
+#[test]
+fn full_dsp_chain_eq_compress_reverb_delay() {
+    use crate::dsp::{
+        BandType, Compressor, CompressorParams, DelayLine, EqBandConfig, ParametricEq, Reverb,
+        ReverbParams,
+    };
+
+    // Generate a 440Hz sine, stereo, 1 second
+    let sr = 44100u32;
+    let frames = 4096;
+    let samples: Vec<f32> = (0..frames * 2)
+        .map(|i| (2.0 * std::f32::consts::PI * 440.0 * (i / 2) as f32 / sr as f32).sin() * 0.8)
+        .collect();
+    let mut buf = AudioBuffer::from_interleaved(samples, 2, sr).unwrap();
+
+    // EQ: boost 440Hz
+    let mut eq = ParametricEq::new(
+        vec![EqBandConfig {
+            band_type: BandType::Peaking,
+            freq_hz: 440.0,
+            gain_db: 6.0,
+            q: 1.0,
+            enabled: true,
+        }],
+        sr,
+        2,
+    );
+    eq.process(&mut buf);
+
+    // Compress
+    let mut comp = Compressor::new(
+        CompressorParams {
+            threshold_db: -12.0,
+            ratio: 4.0,
+            attack_ms: 5.0,
+            release_ms: 50.0,
+            makeup_gain_db: 0.0,
+            knee_db: 0.0,
+        },
+        sr,
+    );
+    comp.process(&mut buf);
+
+    // Reverb
+    let mut reverb = Reverb::new(
+        ReverbParams {
+            room_size: 0.3,
+            damping: 0.5,
+            mix: 0.2,
+        },
+        sr,
+    );
+    reverb.process(&mut buf);
+
+    // Delay
+    let mut delay = DelayLine::new(50.0, 50.0, 0.3, 0.15, sr, 2);
+    delay.process(&mut buf);
+
+    // Normalize
+    dsp::normalize(&mut buf, 0.95);
+
+    // Output should be valid audio
+    assert!(buf.samples.iter().all(|s| s.is_finite()));
+    assert!(buf.peak() <= 1.0);
+    assert!(buf.peak() >= 0.9);
+}
+
+#[test]
+fn format_conversion_pipeline() {
+    use crate::buffer::convert::{f32_to_i16, i16_to_f32, mono_to_stereo, stereo_to_mono};
+
+    // Start with i16 samples
+    let original_i16: Vec<i16> = (0..1024)
+        .map(|i| ((i as f32 / 1024.0 * 2.0 - 1.0) * 30000.0) as i16)
+        .collect();
+
+    // Convert to f32 mono
+    let f32_samples = i16_to_f32(&original_i16);
+    let mono = AudioBuffer::from_interleaved(f32_samples, 1, 44100).unwrap();
+
+    // Convert to stereo
+    let stereo = mono_to_stereo(&mono).unwrap();
+    assert_eq!(stereo.channels, 2);
+
+    // Apply some DSP
+    let mut processed = stereo;
+    dsp::noise_gate(&mut processed, 0.01);
+
+    // Convert back to mono
+    let back_mono = stereo_to_mono(&processed).unwrap();
+    assert_eq!(back_mono.channels, 1);
+
+    // Convert back to i16
+    let back_i16 = f32_to_i16(&back_mono.samples);
+    assert_eq!(back_i16.len(), original_i16.len());
+}
+
+#[test]
+fn sinc_resample_preserves_frequency() {
+    use crate::analysis::spectrum_dft;
+    use crate::buffer::resample::{ResampleQuality, resample_sinc};
+
+    let sr = 44100u32;
+    let frames = 8192;
+    let freq = 440.0f32;
+    let samples: Vec<f32> = (0..frames)
+        .map(|i| (2.0 * std::f32::consts::PI * freq * i as f32 / sr as f32).sin())
+        .collect();
+    let buf = AudioBuffer::from_interleaved(samples, 1, sr).unwrap();
+
+    // Resample to 48000
+    let resampled = resample_sinc(&buf, 48000, ResampleQuality::Good).unwrap();
+    assert_eq!(resampled.sample_rate, 48000);
+
+    // Check dominant frequency is still ~440Hz
+    let spec = spectrum_dft(&resampled, 4096);
+    let dominant = spec.dominant_frequency().unwrap();
+    assert!(
+        (dominant - 440.0).abs() < spec.freq_resolution * 2.0,
+        "Dominant freq {dominant} should be near 440Hz"
+    );
 }

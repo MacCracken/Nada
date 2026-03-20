@@ -3,12 +3,16 @@
 //! Supports interleaved and planar layouts, multiple sample formats,
 //! and zero-copy views for read-only processing.
 
+pub mod convert;
+pub mod resample;
+
 use serde::{Deserialize, Serialize};
 
 use crate::NadaError;
 
 /// Sample format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SampleFormat {
     /// 32-bit float (-1.0 to 1.0, standard for processing)
     F32,
@@ -41,6 +45,7 @@ impl std::fmt::Display for SampleFormat {
 
 /// Buffer layout.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Layout {
     /// Samples interleaved: [L0, R0, L1, R1, ...]
     Interleaved,

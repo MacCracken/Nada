@@ -1,11 +1,26 @@
 //! DSP effects — EQ, compressor, limiter, gate, noise suppression.
 
+pub mod biquad;
+pub mod compressor;
+pub mod deesser;
+pub mod delay;
+pub mod eq;
+pub mod reverb;
+
 use serde::{Deserialize, Serialize};
 
 use crate::NadaError;
 use crate::buffer::AudioBuffer;
 
+pub use biquad::{BiquadCoeffs, BiquadFilter, FilterType};
+pub use compressor::{Compressor, CompressorParams};
+pub use deesser::{DeEsser, DeEsserParams};
+pub use delay::{DelayLine, ModulatedDelay, ModulatedDelayParams};
+pub use eq::{BandType, EqBandConfig, ParametricEq};
+pub use reverb::{Reverb, ReverbParams};
+
 /// Parametric EQ band.
+#[deprecated(since = "0.21.3", note = "use `EqBandConfig` with `ParametricEq` instead")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EqBand {
     /// Center frequency in Hz.
@@ -17,6 +32,8 @@ pub struct EqBand {
 }
 
 /// Apply a simple gain-based EQ band (approximation — proper biquad in v0.21).
+#[deprecated(since = "0.21.3", note = "use `ParametricEq` instead")]
+#[allow(deprecated)]
 pub fn apply_eq_band(_buf: &mut AudioBuffer, _band: &EqBand) -> Result<(), NadaError> {
     // Placeholder — full biquad filter implementation in next version
     Ok(())
@@ -40,6 +57,7 @@ pub fn hard_limiter(buf: &mut AudioBuffer, ceiling: f32) {
 }
 
 /// Simple compressor: reduce dynamic range above threshold.
+#[deprecated(since = "0.21.3", note = "use `Compressor` struct for envelope-aware compression")]
 pub fn compress(buf: &mut AudioBuffer, threshold: f32, ratio: f32) {
     if ratio <= 1.0 {
         return;
@@ -77,6 +95,7 @@ pub fn db_to_amplitude(db: f32) -> f32 {
 }
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
 

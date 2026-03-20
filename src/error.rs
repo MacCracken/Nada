@@ -3,6 +3,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum NadaError {
     #[error("buffer format mismatch: expected {expected}, got {actual}")]
     FormatMismatch { expected: String, actual: String },
@@ -21,6 +22,16 @@ pub enum NadaError {
 
     #[error("capture error: {0}")]
     Capture(String),
+
+    #[error("invalid parameter: {name} = {value} ({reason})")]
+    InvalidParameter {
+        name: String,
+        value: String,
+        reason: String,
+    },
+
+    #[error("conversion error: {0}")]
+    Conversion(String),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),

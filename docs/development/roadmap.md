@@ -6,7 +6,7 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 
 ---
 
-## v0.20.3 — Foundation (current)
+## v0.20.3 — Foundation
 
 - [x] AudioBuffer (f32 interleaved, channels, sample_rate, frames)
 - [x] SampleFormat enum (F32, I16, I32) with bytes_per_sample
@@ -22,29 +22,36 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 
 ---
 
-## v0.21.3 — DSP & Format Conversion
+## v0.21.3 — DSP & Format Conversion (current)
 
 ### DSP effects
-- [ ] Biquad filter (low-pass, high-pass, band-pass, notch, all-pass, peaking, shelf)
-- [ ] Parametric EQ (N-band biquad cascade)
-- [ ] Reverb (Schroeder or Freeverb algorithm)
-- [ ] Delay line (fixed + modulated for chorus/flanger)
-- [ ] De-esser (sibilance reduction)
+- [x] Biquad filter (low-pass, high-pass, band-pass, notch, all-pass, peaking, shelf)
+- [x] Parametric EQ (N-band biquad cascade)
+- [x] Reverb (Schroeder/Freeverb: 4 combs + 2 allpasses, stereo decorrelation)
+- [x] Delay line (fixed + modulated for chorus/flanger)
+- [x] De-esser (sibilance reduction via biquad sidechain)
+- [x] Compressor upgrade (envelope follower, soft knee, makeup gain)
 
 ### Format conversion
-- [ ] i16 ↔ f32 interleaved conversion
-- [ ] i32 ↔ f32 interleaved conversion
-- [ ] Interleaved ↔ planar conversion
-- [ ] Mono → stereo (duplicate) and stereo → mono (sum/average)
-- [ ] 5.1 → stereo downmix
+- [x] i16 ↔ f32 interleaved conversion
+- [x] i32 ↔ f32 interleaved conversion
+- [x] Interleaved ↔ planar conversion
+- [x] Mono → stereo (duplicate) and stereo → mono (sum/average)
+- [x] 5.1 → stereo downmix (ITU-R BS.775)
 
 ### Resampling
-- [ ] Sinc resampling (windowed sinc interpolation — higher quality than linear)
-- [ ] Configurable quality levels (draft/good/best)
+- [x] Sinc resampling (windowed sinc with Blackman-Harris window)
+- [x] Configurable quality levels (draft/good/best)
+
+### Crate quality
+- [x] `#[non_exhaustive]` on enums (NadaError, SampleFormat, Layout, FilterType, etc.)
+- [x] Enhanced lib.rs docs with usage guide, feature table, examples
+- [x] `#[serde(default)]` on parameter structs for forward compatibility
+- [x] 100+ tests, 6 benchmark suites (mix, resample, dsp, convert)
 
 ---
 
-## v0.22.3 — SIMD & Capture
+## v0.22.3 — SIMD, Capture & Crate Quality
 
 ### SIMD acceleration
 - [ ] SSE2 mixing (4 samples/iter)
@@ -60,6 +67,16 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 - [ ] Capture → AudioBuffer conversion
 - [ ] Output to PipeWire sink
 - [ ] Hot-plug device detection
+
+### Crate quality (inspired by ai-hwaccel)
+- [ ] CONTRIBUTING.md
+- [ ] SECURITY.md
+- [ ] deny.toml (license/advisory/source validation)
+- [ ] cargo-vet in CI
+- [ ] Fuzz targets (mix, resample, DSP chain)
+- [ ] Complete docs.rs documentation (all public types + examples)
+- [ ] FFI module (C-compatible API for key types)
+- [ ] cargo-semver-checks in CI
 
 ---
 
@@ -85,9 +102,7 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 
 ### Quality
 - [ ] Property-based tests (proptest: random buffers, sample rates, channels)
-- [ ] Fuzz targets (mix, resample, DSP chain)
 - [ ] 90%+ code coverage
-- [ ] cargo-semver-checks in CI
 
 ---
 
