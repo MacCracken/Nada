@@ -110,7 +110,14 @@ impl AudioBuffer {
 
     /// Peak amplitude across all channels.
     pub fn peak(&self) -> f32 {
-        self.samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max)
+        #[cfg(feature = "simd")]
+        {
+            crate::simd::peak_abs(&self.samples)
+        }
+        #[cfg(not(feature = "simd"))]
+        {
+            self.samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max)
+        }
     }
 
     /// RMS (root mean square) level.
@@ -118,21 +125,43 @@ impl AudioBuffer {
         if self.samples.is_empty() {
             return 0.0;
         }
-        let sum_sq: f64 = self.samples.iter().map(|s| (*s as f64) * (*s as f64)).sum();
-        (sum_sq / self.samples.len() as f64).sqrt() as f32
+        #[cfg(feature = "simd")]
+        {
+            let sum_sq = crate::simd::sum_of_squares(&self.samples);
+            (sum_sq / self.samples.len() as f64).sqrt() as f32
+        }
+        #[cfg(not(feature = "simd"))]
+        {
+            let sum_sq: f64 = self.samples.iter().map(|s| (*s as f64) * (*s as f64)).sum();
+            (sum_sq / self.samples.len() as f64).sqrt() as f32
+        }
     }
 
     /// Apply gain (multiply all samples by factor).
     pub fn apply_gain(&mut self, gain: f32) {
-        for s in &mut self.samples {
-            *s *= gain;
+        #[cfg(feature = "simd")]
+        {
+            crate::simd::apply_gain(&mut self.samples, gain);
+        }
+        #[cfg(not(feature = "simd"))]
+        {
+            for s in &mut self.samples {
+                *s *= gain;
+            }
         }
     }
 
     /// Clamp all samples to [-1.0, 1.0].
     pub fn clamp(&mut self) {
-        for s in &mut self.samples {
-            *s = s.clamp(-1.0, 1.0);
+        #[cfg(feature = "simd")]
+        {
+            crate::simd::clamp(&mut self.samples, -1.0, 1.0);
+        }
+        #[cfg(not(feature = "simd"))]
+        {
+            for s in &mut self.samples {
+                *s = s.clamp(-1.0, 1.0);
+            }
         }
     }
 }
@@ -163,9 +192,16 @@ pub fn mix(buffers: &[&AudioBuffer]) -> Result<AudioBuffer, NadaError> {
     let mut mixed = vec![0.0f32; total];
 
     for buf in buffers {
-        for (i, s) in buf.samples.iter().enumerate() {
-            if i < total {
-                mixed[i] += s;
+        #[cfg(feature = "simd")]
+        {
+            crate::simd::add_buffers(&mut mixed, &buf.samples);
+        }
+        #[cfg(not(feature = "simd"))]
+        {
+            for (i, s) in buf.samples.iter().enumerate() {
+                if i < total {
+                    mixed[i] += s;
+                }
             }
         }
     }

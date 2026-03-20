@@ -51,13 +51,15 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 
 ---
 
-## v0.22.3 — SIMD, Capture & Crate Quality
+## v0.22.3 — SIMD, Capture & Crate Quality (current)
 
 ### SIMD acceleration
-- [ ] SSE2 mixing (4 samples/iter)
-- [ ] AVX2 mixing (8 samples/iter)
-- [ ] NEON mixing (aarch64)
-- [ ] SIMD gain application
+- [x] SSE2 mixing, gain, clamp, peak, RMS, noise gate (4 samples/iter)
+- [x] AVX2 mixing, gain, clamp, peak (8 samples/iter, runtime-detected)
+- [x] NEON mixing, gain, clamp, peak, RMS, noise gate (aarch64)
+- [x] SIMD gain application (apply_gain, hard_limiter)
+- [x] SIMD format conversion (i16↔f32)
+- [x] Platform dispatch module (src/simd/) with scalar fallback
 - [ ] SIMD resampling inner loop
 - [ ] Benchmarks: SIMD vs scalar per operation
 

@@ -64,6 +64,9 @@ pub mod buffer;
 pub mod clock;
 pub mod dsp;
 
+#[cfg(feature = "simd")]
+pub(crate) mod simd;
+
 mod error;
 pub use error::NadaError;
 

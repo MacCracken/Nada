@@ -41,9 +41,16 @@ pub fn apply_eq_band(_buf: &mut AudioBuffer, _band: &EqBand) -> Result<(), NadaE
 
 /// Noise gate: silence samples below threshold.
 pub fn noise_gate(buf: &mut AudioBuffer, threshold: f32) {
-    for s in &mut buf.samples {
-        if s.abs() < threshold {
-            *s = 0.0;
+    #[cfg(feature = "simd")]
+    {
+        crate::simd::noise_gate(&mut buf.samples, threshold);
+    }
+    #[cfg(not(feature = "simd"))]
+    {
+        for s in &mut buf.samples {
+            if s.abs() < threshold {
+                *s = 0.0;
+            }
         }
     }
 }
@@ -51,8 +58,15 @@ pub fn noise_gate(buf: &mut AudioBuffer, threshold: f32) {
 /// Hard limiter: clamp samples at the given ceiling.
 pub fn hard_limiter(buf: &mut AudioBuffer, ceiling: f32) {
     let ceiling = ceiling.abs();
-    for s in &mut buf.samples {
-        *s = s.clamp(-ceiling, ceiling);
+    #[cfg(feature = "simd")]
+    {
+        crate::simd::clamp(&mut buf.samples, -ceiling, ceiling);
+    }
+    #[cfg(not(feature = "simd"))]
+    {
+        for s in &mut buf.samples {
+            *s = s.clamp(-ceiling, ceiling);
+        }
     }
 }
 

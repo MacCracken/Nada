@@ -5,18 +5,35 @@ use crate::buffer::AudioBuffer;
 
 /// Convert i16 interleaved samples to f32 (-1.0 to ~1.0).
 pub fn i16_to_f32(samples: &[i16]) -> Vec<f32> {
-    samples.iter().map(|&s| s as f32 / 32768.0).collect()
+    let mut dst = vec![0.0f32; samples.len()];
+    #[cfg(feature = "simd")]
+    {
+        crate::simd::i16_to_f32(samples, &mut dst);
+    }
+    #[cfg(not(feature = "simd"))]
+    {
+        for (i, &s) in samples.iter().enumerate() {
+            dst[i] = s as f32 / 32768.0;
+        }
+    }
+    dst
 }
 
 /// Convert f32 samples to i16 with clamping.
 pub fn f32_to_i16(samples: &[f32]) -> Vec<i16> {
-    samples
-        .iter()
-        .map(|&s| {
+    let mut dst = vec![0i16; samples.len()];
+    #[cfg(feature = "simd")]
+    {
+        crate::simd::f32_to_i16(samples, &mut dst);
+    }
+    #[cfg(not(feature = "simd"))]
+    {
+        for (i, &s) in samples.iter().enumerate() {
             let clamped = s.clamp(-1.0, 1.0);
-            (clamped * 32767.0) as i16
-        })
-        .collect()
+            dst[i] = (clamped * 32767.0) as i16;
+        }
+    }
+    dst
 }
 
 /// Convert i32 interleaved samples to f32 (-1.0 to ~1.0).
