@@ -1,12 +1,12 @@
-# Contributing to Nada
+# Contributing to Dhvani
 
-Thank you for considering contributing to nada. This guide will help you get started.
+Thank you for considering contributing to dhvani. This guide will help you get started.
 
 ## Getting started
 
 ```bash
-git clone https://github.com/MacCracken/nada
-cd nada
+git clone https://github.com/MacCracken/dhvani
+cd dhvani
 make check   # runs fmt + clippy + test + audit
 ```
 
@@ -80,7 +80,7 @@ src/
 
 ## Versioning
 
-Nada uses `day.month` SemVer (e.g., `0.22.3`). Version bumps are managed by maintainers.
+Dhvani uses `day.month` SemVer (e.g., `0.22.3`). Version bumps are managed by maintainers.
 
 ## License
 

@@ -2,7 +2,7 @@
 
 ## Attack surface
 
-Nada is an audio processing library. Its attack surface is limited to:
+Dhvani is an audio processing library. Its attack surface is limited to:
 
 1. **Audio data** — untrusted f32 sample buffers from external sources
 2. **MIDI data** — untrusted event sequences (note numbers, velocities, CC values)

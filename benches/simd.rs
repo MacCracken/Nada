@@ -7,8 +7,8 @@
 //! Compare results to measure SIMD speedup.
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use nada::buffer::AudioBuffer;
-use nada::buffer::convert;
+use dhvani::buffer::AudioBuffer;
+use dhvani::buffer::convert;
 
 fn make_stereo_1s() -> AudioBuffer {
     let samples: Vec<f32> = (0..88200)
@@ -45,14 +45,14 @@ fn bench_mix_2(c: &mut Criterion) {
     let a = AudioBuffer::from_interleaved(vec![0.5; 88200], 2, 44100).unwrap();
     let b = AudioBuffer::from_interleaved(vec![0.3; 88200], 2, 44100).unwrap();
     c.bench_function("simd_mix_2_stereo_1s", |b_| {
-        b_.iter(|| nada::buffer::mix(&[&a, &b]).unwrap())
+        b_.iter(|| dhvani::buffer::mix(&[&a, &b]).unwrap())
     });
 }
 
 fn bench_noise_gate(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
     c.bench_function("simd_noise_gate_stereo_1s", |b| {
-        b.iter(|| nada::dsp::noise_gate(&mut buf, 0.01))
+        b.iter(|| dhvani::dsp::noise_gate(&mut buf, 0.01))
     });
 }
 
@@ -73,7 +73,7 @@ fn bench_f32_to_i16(c: &mut Criterion) {
 }
 
 fn bench_sinc_resample(c: &mut Criterion) {
-    use nada::buffer::resample::{ResampleQuality, resample_sinc};
+    use dhvani::buffer::resample::{ResampleQuality, resample_sinc};
     let buf = AudioBuffer::from_interleaved(vec![0.5; 88200], 2, 44100).unwrap();
     c.bench_function("simd_sinc_resample_good_stereo_1s", |b| {
         b.iter(|| resample_sinc(&buf, 48000, ResampleQuality::Good).unwrap())

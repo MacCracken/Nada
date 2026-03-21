@@ -1,7 +1,7 @@
 //! MIDI types — events, clips, MIDI 2.0, voice management, routing.
 //!
 //! Canonical MIDI crate for the AGNOS ecosystem. Consumers (shruti, jalwa,
-//! hoosh, tarang) all use `nada::midi` rather than rolling their own.
+//! hoosh, tarang) all use `dhvani::midi` rather than rolling their own.
 
 pub mod routing;
 pub mod translate;

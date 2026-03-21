@@ -1,8 +1,8 @@
 //! Mix multiple audio sources, apply DSP, and analyze the result.
 
-use nada::analysis;
-use nada::buffer::{AudioBuffer, mix};
-use nada::dsp::{self, BandType, Compressor, CompressorParams, EqBandConfig, ParametricEq};
+use dhvani::analysis;
+use dhvani::buffer::{AudioBuffer, mix};
+use dhvani::dsp::{self, BandType, Compressor, CompressorParams, EqBandConfig, ParametricEq};
 
 fn main() {
     // Generate two sine wave sources

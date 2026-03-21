@@ -1,4 +1,4 @@
-//! C-compatible FFI for key nada types.
+//! C-compatible FFI for key dhvani types.
 //!
 //! Provides an opaque handle API for creating and processing audio buffers
 //! from C, Python (via ctypes), or other FFI consumers.
@@ -196,7 +196,7 @@ pub unsafe extern "C" fn nada_buffer_total_samples(ptr: *const NadaBuffer) -> us
     unsafe { (*ptr).0.total_samples() }
 }
 
-/// Free a C string returned by nada.
+/// Free a C string returned by dhvani.
 ///
 /// # Safety
 /// `ptr` must be a valid C string returned by a `nada_*` function, or null.

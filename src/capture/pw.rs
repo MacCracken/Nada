@@ -168,7 +168,7 @@ fn run_capture_loop(
         props.insert("target.object", id.to_string());
     }
 
-    let stream = pw::stream::StreamBox::new(&core, "nada-capture", props)
+    let stream = pw::stream::StreamBox::new(&core, "dhvani-capture", props)
         .map_err(|e| NadaError::Capture(e.to_string()))?;
 
     // User data for the process callback
@@ -425,7 +425,7 @@ fn run_output_loop(
         props.insert("target.object", id.to_string());
     }
 
-    let stream = pw::stream::StreamBox::new(&core, "nada-output", props)
+    let stream = pw::stream::StreamBox::new(&core, "dhvani-output", props)
         .map_err(|e| NadaError::Capture(e.to_string()))?;
 
     struct OutputData {

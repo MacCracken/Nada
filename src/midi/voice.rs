@@ -36,7 +36,7 @@ pub enum VoiceStealMode {
 
 /// A single synthesizer voice.
 ///
-/// Nada provides voice management (allocation, stealing, state tracking).
+/// Dhvani provides voice management (allocation, stealing, state tracking).
 /// Consumers own synthesis state (oscillator phases, etc.) indexed by voice slot.
 #[derive(Debug, Clone)]
 pub struct Voice {

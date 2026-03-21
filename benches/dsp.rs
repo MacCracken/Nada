@@ -1,7 +1,7 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use nada::buffer::AudioBuffer;
-use nada::dsp;
-use nada::dsp::{
+use dhvani::buffer::AudioBuffer;
+use dhvani::dsp;
+use dhvani::dsp::{
     BandType, BiquadFilter, Compressor, CompressorParams, EqBandConfig, FilterType, ParametricEq,
     Reverb, ReverbParams,
 };
@@ -130,7 +130,7 @@ fn bench_reverb_1s(c: &mut Criterion) {
 
 fn bench_panner_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
-    let panner = nada::dsp::StereoPanner::new(0.3);
+    let panner = dhvani::dsp::StereoPanner::new(0.3);
     c.bench_function("panner_stereo_1s", |bench| {
         bench.iter(|| panner.process(&mut buf))
     });
@@ -138,8 +138,8 @@ fn bench_panner_1s(c: &mut Criterion) {
 
 fn bench_limiter_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
-    let mut limiter = nada::dsp::EnvelopeLimiter::new(
-        nada::dsp::LimiterParams {
+    let mut limiter = dhvani::dsp::EnvelopeLimiter::new(
+        dhvani::dsp::LimiterParams {
             ceiling_db: -1.0,
             release_ms: 50.0,
             knee_db: 3.0,

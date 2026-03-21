@@ -1,4 +1,4 @@
-//! Error types for nada.
+//! Error types for dhvani.
 
 use thiserror::Error;
 

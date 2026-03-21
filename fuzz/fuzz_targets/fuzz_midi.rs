@@ -1,8 +1,8 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
-use nada::midi::{MidiClip, NoteEvent};
-use nada::midi::voice::{VoiceManager, VoiceStealMode};
-use nada::midi::translate;
+use dhvani::midi::{MidiClip, NoteEvent};
+use dhvani::midi::voice::{VoiceManager, VoiceStealMode};
+use dhvani::midi::translate;
 
 fuzz_target!(|data: &[u8]| {
     if data.len() < 8 { return; }

@@ -1,21 +1,21 @@
-# nada
+# dhvani
 
 **Core audio engine for Rust.**
 
 Buffers, DSP, resampling, mixing, analysis, and capture — in a single crate. The audio equivalent of [ranga](https://crates.io/crates/ranga) (image processing) and [tarang](https://crates.io/crates/tarang) (media framework).
 
-> **Name**: Nada (नाद, Sanskrit) — primordial sound, cosmic vibration.
+> **Name**: Dhvani (नाद, Sanskrit) — primordial sound, cosmic vibration.
 > Extracted from [shruti](https://github.com/MacCracken/shruti) (DAW) as a standalone, reusable engine.
 
-[![Crates.io](https://img.shields.io/crates/v/nada.svg)](https://crates.io/crates/nada)
-[![CI](https://github.com/MacCracken/nada/actions/workflows/ci.yml/badge.svg)](https://github.com/MacCracken/nada/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/dhvani.svg)](https://crates.io/crates/dhvani)
+[![CI](https://github.com/MacCracken/dhvani/actions/workflows/ci.yml/badge.svg)](https://github.com/MacCracken/dhvani/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 
 ---
 
 ## What it does
 
-nada is the **audio processing core** — it owns the audio math so nobody else has to. Applications build their audio features on top of nada.
+dhvani is the **audio processing core** — it owns the audio math so nobody else has to. Applications build their audio features on top of dhvani.
 
 | Capability | Details |
 |------------|---------|
@@ -34,14 +34,14 @@ nada is the **audio processing core** — it owns the audio math so nobody else 
 
 ```toml
 [dependencies]
-nada = "0.20"
+dhvani = "0.20"
 ```
 
 ```rust
-use nada::buffer::{AudioBuffer, mix, resample_linear};
-use nada::dsp;
-use nada::analysis;
-use nada::clock::AudioClock;
+use dhvani::buffer::{AudioBuffer, mix, resample_linear};
+use dhvani::dsp;
+use dhvani::analysis;
+use dhvani::clock::AudioClock;
 
 // Create buffers
 let vocals = AudioBuffer::from_interleaved(samples_a, 2, 44100)?;
@@ -82,10 +82,10 @@ println!("PTS: {} us", clock.pts_us());
 
 ```toml
 # Minimal (no system deps)
-nada = { version = "0.20", default-features = false }
+dhvani = { version = "0.20", default-features = false }
 
 # With PipeWire capture (Linux)
-nada = { version = "0.20", features = ["pipewire"] }
+dhvani = { version = "0.20", features = ["pipewire"] }
 ```
 
 ---
@@ -148,7 +148,7 @@ let silent = analysis::is_silent(&buf, -60.0);
 
 ```
 shruti (श्रुति — that which is heard) creates music
-  └── with nada (नाद — primordial sound) as its audio engine
+  └── with dhvani (नाद — primordial sound) as its audio engine
        └── carried by tarang (तरंग — wave) as its media framework
             └── colored by ranga (रंग — color) for visual processing
 ```
@@ -184,8 +184,8 @@ Full details: [docs/development/roadmap.md](docs/development/roadmap.md)
 ## Building from source
 
 ```bash
-git clone https://github.com/MacCracken/nada.git
-cd nada
+git clone https://github.com/MacCracken/dhvani.git
+cd dhvani
 
 # Build (no system deps needed)
 cargo build

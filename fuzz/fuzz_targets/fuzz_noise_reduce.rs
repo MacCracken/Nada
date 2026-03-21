@@ -1,7 +1,7 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
-use nada::buffer::AudioBuffer;
-use nada::dsp::noise_reduce;
+use dhvani::buffer::AudioBuffer;
+use dhvani::dsp::noise_reduce;
 
 fuzz_target!(|data: &[u8]| {
     if data.len() < 16 { return; }

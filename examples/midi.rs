@@ -1,9 +1,9 @@
 //! MIDI: clips, voice management, translation, routing.
 
-use nada::midi::routing::{CcMapping, MidiRoute, VelocityCurve};
-use nada::midi::translate::{note_event_to_v2, velocity_7_to_16};
-use nada::midi::voice::{VoiceManager, VoiceStealMode};
-use nada::midi::{MidiClip, NoteEvent};
+use dhvani::midi::routing::{CcMapping, MidiRoute, VelocityCurve};
+use dhvani::midi::translate::{note_event_to_v2, velocity_7_to_16};
+use dhvani::midi::voice::{VoiceManager, VoiceStealMode};
+use dhvani::midi::{MidiClip, NoteEvent};
 
 fn main() {
     // Create a MIDI clip

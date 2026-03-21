@@ -1,5 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use nada::buffer::{AudioBuffer, mix};
+use dhvani::buffer::{AudioBuffer, mix};
 
 fn bench_mix_stereo_1s(c: &mut Criterion) {
     let a = AudioBuffer::from_interleaved(vec![0.5; 88200], 2, 44100).unwrap();

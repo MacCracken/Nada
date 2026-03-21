@@ -1,7 +1,7 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
-use nada::buffer::AudioBuffer;
-use nada::graph::{AudioNode, Graph, GraphProcessor, NodeId};
+use dhvani::buffer::AudioBuffer;
+use dhvani::graph::{AudioNode, Graph, GraphProcessor, NodeId};
 
 struct FuzzNode { value: f32 }
 impl AudioNode for FuzzNode {

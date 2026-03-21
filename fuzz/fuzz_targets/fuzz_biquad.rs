@@ -1,7 +1,7 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
-use nada::buffer::AudioBuffer;
-use nada::dsp::biquad::{BiquadFilter, FilterType};
+use dhvani::buffer::AudioBuffer;
+use dhvani::dsp::biquad::{BiquadFilter, FilterType};
 
 fuzz_target!(|data: &[u8]| {
     if data.len() < 12 { return; }

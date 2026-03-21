@@ -1,6 +1,6 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use nada::analysis;
-use nada::buffer::AudioBuffer;
+use dhvani::analysis;
+use dhvani::buffer::AudioBuffer;
 
 fn make_mono_1s() -> AudioBuffer {
     let samples: Vec<f32> = (0..44100)

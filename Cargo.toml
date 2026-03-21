@@ -1,12 +1,12 @@
 [package]
-name = "nada"
+name = "dhvani"
 version = "0.20.3"
 edition = "2024"
 rust-version = "1.89"
 license = "AGPL-3.0-only"
 description = "Core audio engine — buffers, DSP, resampling, mixing, analysis, and capture for Rust"
-homepage = "https://github.com/MacCracken/nada"
-repository = "https://github.com/MacCracken/nada"
+homepage = "https://github.com/MacCracken/dhvani"
+repository = "https://github.com/MacCracken/dhvani"
 readme = "README.md"
 keywords = ["audio", "dsp", "mixing", "resampling", "pipewire"]
 categories = ["multimedia", "multimedia::audio"]

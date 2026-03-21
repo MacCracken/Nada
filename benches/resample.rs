@@ -1,6 +1,6 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use nada::buffer::resample::ResampleQuality;
-use nada::buffer::{AudioBuffer, resample_linear};
+use dhvani::buffer::resample::ResampleQuality;
+use dhvani::buffer::{AudioBuffer, resample_linear};
 
 fn bench_resample_linear_44100_to_48000(c: &mut Criterion) {
     let buf = AudioBuffer::from_interleaved(vec![0.5; 44100], 1, 44100).unwrap();
@@ -20,7 +20,7 @@ fn bench_resample_sinc_draft(c: &mut Criterion) {
     let buf = AudioBuffer::from_interleaved(vec![0.5; 88200], 2, 44100).unwrap();
     c.bench_function("resample_sinc_draft_stereo_1s", |bench| {
         bench.iter(|| {
-            nada::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Draft).unwrap()
+            dhvani::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Draft).unwrap()
         })
     });
 }
@@ -29,7 +29,7 @@ fn bench_resample_sinc_good(c: &mut Criterion) {
     let buf = AudioBuffer::from_interleaved(vec![0.5; 88200], 2, 44100).unwrap();
     c.bench_function("resample_sinc_good_stereo_1s", |bench| {
         bench.iter(|| {
-            nada::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Good).unwrap()
+            dhvani::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Good).unwrap()
         })
     });
 }
@@ -38,7 +38,7 @@ fn bench_resample_sinc_best(c: &mut Criterion) {
     let buf = AudioBuffer::from_interleaved(vec![0.5; 88200], 2, 44100).unwrap();
     c.bench_function("resample_sinc_best_stereo_1s", |bench| {
         bench.iter(|| {
-            nada::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Best).unwrap()
+            dhvani::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Best).unwrap()
         })
     });
 }

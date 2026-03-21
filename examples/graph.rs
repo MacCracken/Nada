@@ -1,7 +1,7 @@
 //! Audio graph: build a processing graph, compile, and process.
 
-use nada::buffer::AudioBuffer;
-use nada::graph::{AudioNode, Graph, GraphProcessor, NodeId};
+use dhvani::buffer::AudioBuffer;
+use dhvani::graph::{AudioNode, Graph, GraphProcessor, NodeId};
 
 // A tone generator node
 struct ToneGenerator {

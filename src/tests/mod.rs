@@ -1,4 +1,4 @@
-//! Integration and property-based tests for nada.
+//! Integration and property-based tests for dhvani.
 
 mod proptest_tests;
 mod serde_tests;

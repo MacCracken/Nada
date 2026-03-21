@@ -4,12 +4,12 @@
 
 For minimal binary size and no system dependencies:
 ```toml
-nada = { version = "0.20", default-features = false }
+dhvani = { version = "0.20", default-features = false }
 ```
 
 For full Linux audio support:
 ```toml
-nada = { version = "0.20", features = ["full"] }
+dhvani = { version = "0.20", features = ["full"] }
 ```
 
 ## SIMD

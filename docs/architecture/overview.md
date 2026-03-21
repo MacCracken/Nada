@@ -1,8 +1,8 @@
-# Nada Architecture
+# Dhvani Architecture
 
 > Core audio engine — buffers, DSP, resampling, mixing, analysis, and capture.
 >
-> **Name**: Nada (नाद, Sanskrit) — primordial sound, cosmic vibration.
+> **Name**: Dhvani (नाद, Sanskrit) — primordial sound, cosmic vibration.
 > Extracted from [shruti](https://github.com/MacCracken/shruti) (DAW) as a standalone, reusable crate.
 
 ---
@@ -76,7 +76,7 @@ DFT magnitude analysis. Provides frequency bins, dominant frequency detection, a
 
 | Project | Usage |
 |---------|-------|
-| **shruti** | DAW — drops engine/dsp crates, uses nada for all audio math |
+| **shruti** | DAW — drops engine/dsp crates, uses dhvani for all audio math |
 | **jalwa** | Media player — playback EQ, visualizer spectrum, resampling |
 | **aethersafta** | Compositor — PipeWire capture, audio mixing for streams |
 | **tarang** | Media framework — audio analysis, fingerprinting input |

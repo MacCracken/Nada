@@ -24,7 +24,7 @@ cargo build --no-default-features
 ```
 
 ### MSRV errors
-Nada requires Rust 1.89+. Check your toolchain:
+Dhvani requires Rust 1.89+. Check your toolchain:
 ```bash
 rustc --version
 rustup update stable
@@ -35,11 +35,11 @@ rustup update stable
 ### PipeWire: `enumerate_devices()` returns empty
 - Verify PipeWire is running: `systemctl --user status pipewire`
 - Check for audio nodes: `pw-cli list-objects | grep Audio`
-- Ensure `libpipewire-0.3.so` is loadable: `ldd target/debug/nada | grep pipewire`
+- Ensure `libpipewire-0.3.so` is loadable: `ldd target/debug/dhvani | grep pipewire`
 
 ### PipeWire: capture produces silence
 - Check the target device ID matches an active source
-- Verify the audio format matches (nada uses F32LE)
+- Verify the audio format matches (dhvani uses F32LE)
 - Monitor PipeWire graph: `pw-top`
 
 ### DSP output contains NaN or Infinity

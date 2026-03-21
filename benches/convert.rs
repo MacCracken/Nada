@@ -1,6 +1,6 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use nada::buffer::AudioBuffer;
-use nada::buffer::convert::{
+use dhvani::buffer::AudioBuffer;
+use dhvani::buffer::convert::{
     f32_to_i16, i16_to_f32, interleaved_to_planar, mono_to_stereo, stereo_to_mono,
 };
 

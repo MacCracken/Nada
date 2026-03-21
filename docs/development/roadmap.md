@@ -1,4 +1,4 @@
-# Nada Roadmap
+# Dhvani Roadmap
 
 > **Principle**: Correctness first, then SIMD, then capture backends. Every consumer gets the same audio math.
 
@@ -84,7 +84,7 @@ Items surfaced from reviewing shruti, jalwa, tazama, and SY audio paths:
 
 - [ ] **Spectral noise reduction (STFT gating)** — from tazama `noise_reduction.rs`. General-purpose DSP used by video editors, DAWs, and stream audio. STFT → threshold magnitudes → ISTFT
 - [ ] **Waveform peak extraction (downsampled min/max)** — from tazama `waveform.rs`. Every audio app needs this for UI visualization. Returns min/max pairs at configurable reduction ratio
-- [ ] **Oscillator (PolyBLEP: sine, saw, square, triangle, noise)** — from shruti `oscillator.rs`. Synthesis primitive — nada provides voice management but no waveform generation
+- [ ] **Oscillator (PolyBLEP: sine, saw, square, triangle, noise)** — from shruti `oscillator.rs`. Synthesis primitive — dhvani provides voice management but no waveform generation
 - [ ] **ADSR Envelope** — from shruti `envelope.rs`. Paired with oscillator for synthesis. Attack/decay/sustain/release with configurable curves
 - [ ] **LFO (6 shapes + sample-and-hold)** — from shruti `lfo.rs`. Modulation primitive for effects and synthesis. Sync-to-tempo option via AudioClock
 
@@ -135,16 +135,16 @@ Items surfaced from reviewing shruti, jalwa, tazama, and SY audio paths:
 
 ### Adoption
 
-- [ ] shruti adopts nada (replace shruti-engine + shruti-dsp + shruti-session MIDI)
-- [ ] jalwa adopts nada (replace playback buffer + EQ + normalization)
-- [ ] aethersafta adopts nada (replace PipeWire capture + mixer)
-- [ ] tazama uses nada DSP (replace tazama-media/dsp/)
-- [ ] hoosh uses `nada::midi` for music token preprocessing
+- [ ] shruti adopts dhvani (replace shruti-engine + shruti-dsp + shruti-session MIDI)
+- [ ] jalwa adopts dhvani (replace playback buffer + EQ + normalization)
+- [ ] aethersafta adopts dhvani (replace PipeWire capture + mixer)
+- [ ] tazama uses dhvani DSP (replace tazama-media/dsp/)
+- [ ] hoosh uses `dhvani::midi` for music token preprocessing
 
 ### Validation
 
 - [ ] Cross-crate integration tests
-- [ ] Benchmark regression: nada not slower than code it replaces
+- [ ] Benchmark regression: dhvani not slower than code it replaces
 
 ---
 
@@ -203,4 +203,4 @@ All must be true:
 - **Plugin hosting (VST/CLAP/LV2)** — shruti
 - **Music composition / sequencing** — shruti
 - **Streaming protocols (RTMP/SRT)** — aethersafta
-- **Specific instruments** — shruti; nada provides voice management, consumers build on top
+- **Specific instruments** — shruti; dhvani provides voice management, consumers build on top

@@ -9,17 +9,17 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in nada:
+If you discover a security vulnerability in dhvani:
 
 1. **Do not** open a public GitHub issue
-2. Use [GitHub Security Advisories](https://github.com/MacCracken/nada/security/advisories/new) to report privately
+2. Use [GitHub Security Advisories](https://github.com/MacCracken/dhvani/security/advisories/new) to report privately
 3. Include: description, steps to reproduce, impact assessment
 4. **Response SLA**: acknowledgement within 72 hours, fix within 14 days for critical issues
 5. We will coordinate disclosure timing with you
 
 ## Scope
 
-Nada is an audio processing library. Security-relevant areas include:
+Dhvani is an audio processing library. Security-relevant areas include:
 
 | Area | Risk | Mitigation |
 |------|------|-----------|

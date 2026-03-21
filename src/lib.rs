@@ -1,6 +1,6 @@
-//! # Nada — Core Audio Engine
+//! # Dhvani — Core Audio Engine
 //!
-//! Nada (नाद, Sanskrit: primordial sound) provides shared audio processing
+//! Dhvani (ध्वनि, Sanskrit: sound, resonance) provides shared audio processing
 //! primitives for the AGNOS ecosystem. It eliminates duplicate implementations
 //! across [shruti](https://github.com/MacCracken/shruti) (DAW),
 //! [jalwa](https://github.com/MacCracken/jalwa) (media player),
@@ -27,9 +27,9 @@
 //! # Quick Start
 //!
 //! ```rust
-//! use nada::buffer::{AudioBuffer, mix};
-//! use nada::dsp::{self, ParametricEq, EqBandConfig, BandType, Compressor, CompressorParams};
-//! use nada::analysis;
+//! use dhvani::buffer::{AudioBuffer, mix};
+//! use dhvani::dsp::{self, ParametricEq, EqBandConfig, BandType, Compressor, CompressorParams};
+//! use dhvani::analysis;
 //!
 //! // Create and mix buffers
 //! let vocals = AudioBuffer::from_interleaved(vec![0.5; 4096], 2, 44100).unwrap();
@@ -62,8 +62,8 @@
 //! [`AudioBuffer`](buffer::AudioBuffer) is the core type. All audio is f32 interleaved internally.
 //!
 //! ```rust
-//! use nada::buffer::{AudioBuffer, mix, resample_linear};
-//! use nada::buffer::convert::{i16_to_f32, mono_to_stereo};
+//! use dhvani::buffer::{AudioBuffer, mix, resample_linear};
+//! use dhvani::buffer::convert::{i16_to_f32, mono_to_stereo};
 //!
 //! // From raw samples
 //! let buf = AudioBuffer::from_interleaved(vec![0.5; 2048], 2, 44100).unwrap();
@@ -89,8 +89,8 @@
 //! Stateless operations (gate, limiter, normalize) are free functions.
 //!
 //! ```rust
-//! use nada::buffer::AudioBuffer;
-//! use nada::dsp::{self, BiquadFilter, FilterType, Reverb, ReverbParams, StereoPanner};
+//! use dhvani::buffer::AudioBuffer;
+//! use dhvani::dsp::{self, BiquadFilter, FilterType, Reverb, ReverbParams, StereoPanner};
 //!
 //! let mut buf = AudioBuffer::from_interleaved(vec![0.5; 4096], 2, 44100).unwrap();
 //!
@@ -116,8 +116,8 @@
 //! Analysis functions are non-destructive — they read the buffer without modifying it.
 //!
 //! ```rust
-//! use nada::buffer::AudioBuffer;
-//! use nada::analysis::{self, spectrum_fft, analyze_dynamics, measure_r128, chromagram, detect_onsets, compute_stft};
+//! use dhvani::buffer::AudioBuffer;
+//! use dhvani::analysis::{self, spectrum_fft, analyze_dynamics, measure_r128, chromagram, detect_onsets, compute_stft};
 //!
 //! let buf = AudioBuffer::from_interleaved(
 //!     (0..44100).map(|i| (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 44100.0).sin()).collect(),
@@ -148,8 +148,8 @@
 //! ## Step 4: Work with MIDI
 //!
 //! ```rust
-//! use nada::midi::{MidiClip, NoteEvent, MidiEvent};
-//! use nada::midi::voice::{VoiceManager, VoiceStealMode};
+//! use dhvani::midi::{MidiClip, NoteEvent, MidiEvent};
+//! use dhvani::midi::voice::{VoiceManager, VoiceStealMode};
 //!
 //! // Create a clip with notes
 //! let mut clip = MidiClip::new("melody", 0, 44100);
@@ -169,8 +169,8 @@
 //! ## Step 5: Build an audio graph
 //!
 //! ```rust,no_run
-//! use nada::graph::{Graph, GraphProcessor, NodeId, AudioNode};
-//! use nada::buffer::AudioBuffer;
+//! use dhvani::graph::{Graph, GraphProcessor, NodeId, AudioNode};
+//! use dhvani::buffer::AudioBuffer;
 //!
 //! // Define a custom node
 //! struct ToneGenerator { freq: f32, phase: f64 }
@@ -204,8 +204,8 @@
 //! All fallible operations return [`Result<T, NadaError>`](NadaError).
 //!
 //! ```rust
-//! use nada::buffer::AudioBuffer;
-//! use nada::NadaError;
+//! use dhvani::buffer::AudioBuffer;
+//! use dhvani::NadaError;
 //!
 //! match AudioBuffer::from_interleaved(vec![], 0, 44100) {
 //!     Ok(_) => unreachable!(),
@@ -224,7 +224,7 @@
 //!
 //! Disable SIMD for scalar-only builds (e.g., WASM or embedded):
 //! ```toml
-//! nada = { version = "0.20", default-features = false }
+//! dhvani = { version = "0.20", default-features = false }
 //! ```
 
 pub mod analysis;
@@ -243,7 +243,7 @@ pub(crate) mod simd;
 mod error;
 pub use error::NadaError;
 
-/// Result type alias for nada operations.
+/// Result type alias for dhvani operations.
 pub type Result<T> = std::result::Result<T, NadaError>;
 
 #[cfg(test)]

@@ -1,9 +1,9 @@
 //! Analyze audio: FFT, EBU R128, dynamics, chromagram, onset detection.
 
-use nada::analysis::{
+use dhvani::analysis::{
     analyze_dynamics, chromagram, compute_stft, detect_onsets, measure_r128, spectrum_fft,
 };
-use nada::buffer::AudioBuffer;
+use dhvani::buffer::AudioBuffer;
 
 fn main() {
     let sr = 44100u32;

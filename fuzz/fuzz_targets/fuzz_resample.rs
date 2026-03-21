@@ -1,7 +1,7 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
-use nada::buffer::{AudioBuffer, resample_linear};
-use nada::buffer::resample::{ResampleQuality, resample_sinc};
+use dhvani::buffer::{AudioBuffer, resample_linear};
+use dhvani::buffer::resample::{ResampleQuality, resample_sinc};
 
 fuzz_target!(|data: &[u8]| {
     if data.len() < 8 {
