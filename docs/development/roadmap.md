@@ -57,6 +57,10 @@ Everything needed to make the public API production-safe and v1.0-ready.
 - [ ] **Crossfade**: Linear and equal-power crossfade between two buffers — needed by jalwa (track transitions), aethersafta (stream switching), shruti (clip editing)
 - [ ] **Fade in / fade out**: Linear and exponential ramp applied to buffer head/tail
 - [ ] **Target loudness normalization**: Normalize to a target LUFS (e.g. -14 LUFS for streaming). Combines `measure_r128()` + gain application. jalwa and tarang need this for Spotify/YouTube/Apple compliance
+### Trait derives
+
+- [ ] **Debug + Clone on all public types**: `GraphicEq` is missing `Debug` and `Clone` (wraps `ParametricEq` which holds internal filter state). All public types should derive `Debug` + `Clone` for consumer ergonomics
+
 ### Robustness
 
 - [ ] **NaN propagation audit**: All DSP effects handle NaN input → 0.0; add `debug_assert!(is_finite())` in test builds
@@ -100,7 +104,7 @@ Ship-quality validation, close SIMD gaps, documentation for v1.0, and get consum
 
 - [ ] **Beat/tempo detection**: Autocorrelation of onset function → BPM estimate. jalwa and tarang need this for music analysis
 - [ ] **Key detection**: Krumhansl-Schmuckler profile matching on existing chromagram output. Small addition, high value
-- [ ] **Spectral rolloff** — frequency below which 95% of spectral energy sits
+- [x] ~~**Spectral rolloff**~~ — shipped as `Spectrum::spectral_rolloff()` in v0.20.5; also added `spectral_centroid()`
 - [ ] **Zero-crossing rate** — simple feature useful for speech/music discrimination
 
 ### DSP additions

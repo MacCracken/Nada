@@ -53,6 +53,43 @@ impl Spectrum {
     pub fn dominant_frequency(&self) -> Option<f32> {
         self.peak_bin().map(|(i, _)| self.bin_frequency(i))
     }
+
+    /// Spectral centroid — weighted mean of frequencies by magnitude.
+    ///
+    /// A brightness indicator: higher centroid = brighter sound.
+    /// Returns 0.0 for silence.
+    pub fn spectral_centroid(&self) -> f32 {
+        let total_mag: f32 = self.magnitudes.iter().sum();
+        if total_mag <= 0.0 {
+            return 0.0;
+        }
+        self.magnitudes
+            .iter()
+            .enumerate()
+            .map(|(i, &m)| i as f32 * self.freq_resolution * m)
+            .sum::<f32>()
+            / total_mag
+    }
+
+    /// Spectral rolloff — frequency below which a given fraction of spectral energy sits.
+    ///
+    /// Default threshold is 0.95 (95% of energy). A timbral shape descriptor.
+    /// Returns 0.0 for silence.
+    pub fn spectral_rolloff(&self, threshold: f32) -> f32 {
+        let total_energy: f32 = self.magnitudes.iter().map(|m| m * m).sum();
+        if total_energy <= 0.0 {
+            return 0.0;
+        }
+        let target = total_energy * threshold.clamp(0.0, 1.0);
+        let mut cumulative = 0.0f32;
+        for (i, &m) in self.magnitudes.iter().enumerate() {
+            cumulative += m * m;
+            if cumulative >= target {
+                return i as f32 * self.freq_resolution;
+            }
+        }
+        self.magnitudes.len() as f32 * self.freq_resolution
+    }
 }
 
 /// Compute a simple DFT magnitude spectrum (not FFT — for small windows).
@@ -247,5 +284,50 @@ mod tests {
         let buf = AudioBuffer::from_interleaved(vec![0.0001; 1024], 1, 44100).unwrap();
         let gain = suggest_gain(&buf, 0.125);
         assert_eq!(gain, 10.0);
+    }
+
+    #[test]
+    fn spectral_centroid_of_silence() {
+        let buf = AudioBuffer::silence(1, 256, 44100);
+        let spec = spectrum_dft(&buf, 256);
+        assert_eq!(spec.spectral_centroid(), 0.0);
+    }
+
+    #[test]
+    fn spectral_centroid_of_sine() {
+        let sr = 44100u32;
+        let freq = 2000.0f32;
+        let samples: Vec<f32> = (0..4096)
+            .map(|i| (2.0 * std::f32::consts::PI * freq * i as f32 / sr as f32).sin())
+            .collect();
+        let buf = AudioBuffer::from_interleaved(samples, 1, sr).unwrap();
+        let spec = spectrum_fft(&buf, 4096);
+        let centroid = spec.spectral_centroid();
+        // Centroid should be near the sine frequency
+        assert!(
+            (centroid - freq).abs() < 200.0,
+            "centroid at {centroid} Hz, expected near {freq} Hz"
+        );
+    }
+
+    #[test]
+    fn spectral_rolloff_of_silence() {
+        let buf = AudioBuffer::silence(1, 256, 44100);
+        let spec = spectrum_dft(&buf, 256);
+        assert_eq!(spec.spectral_rolloff(0.95), 0.0);
+    }
+
+    #[test]
+    fn spectral_rolloff_below_nyquist() {
+        let sr = 44100u32;
+        let samples: Vec<f32> = (0..4096)
+            .map(|i| (2.0 * std::f32::consts::PI * 1000.0 * i as f32 / sr as f32).sin())
+            .collect();
+        let buf = AudioBuffer::from_interleaved(samples, 1, sr).unwrap();
+        let spec = spectrum_fft(&buf, 4096);
+        let rolloff = spec.spectral_rolloff(0.95);
+        // For a pure sine, 95% rolloff should be near the fundamental
+        assert!(rolloff > 0.0);
+        assert!(rolloff < sr as f32 / 2.0, "rolloff should be below Nyquist");
     }
 }

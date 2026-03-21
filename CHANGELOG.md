@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.5] — 2026-03-21
+
+### Added
+
+#### Analysis
+- `Spectrum::spectral_centroid()` — weighted mean frequency by magnitude, a brightness indicator
+- `Spectrum::spectral_rolloff(threshold)` — frequency below which a given fraction of spectral energy sits (timbral shape descriptor)
+
+#### Metering
+- `LevelMeter` — block-accumulating audio level meter with peak, RMS, LUFS, and peak-hold tracking. Accumulates statistics across multiple `process()` calls and computes integrated LUFS using simplified EBU R128 gating (absolute gate at -70 LUFS, relative gate at mean-10 LU). Includes per-channel peak hold with configurable decay coefficient. Complements the existing lock-free `PeakMeter`/`MeterBank` for RT-safe metering
+
+---
+
 ## [0.20.4] — 2026-03-20
 
 ### Added
