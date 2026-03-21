@@ -29,13 +29,16 @@ pub fn spectrum_fft(buf: &AudioBuffer, window_size: usize) -> Spectrum {
         *r = buf.samples[i] as f64 * window;
     }
 
+    let freq_resolution = buf.sample_rate as f32 / window_size as f32;
+
     // In-place FFT (returns false if preconditions fail)
     if !fft_in_place(&mut real, &mut imag) {
-        return Spectrum {
-            magnitudes: vec![0.0; num_bins],
-            freq_resolution: buf.sample_rate as f32 / window_size as f32,
-            sample_rate: buf.sample_rate,
-        };
+        return Spectrum::from_magnitudes(
+            vec![0.0; num_bins],
+            freq_resolution,
+            buf.sample_rate,
+            window_size,
+        );
     }
     let mut magnitudes = vec![0.0f32; num_bins];
 
@@ -51,11 +54,7 @@ pub fn spectrum_fft(buf: &AudioBuffer, window_size: usize) -> Spectrum {
         }
     }
 
-    Spectrum {
-        magnitudes,
-        freq_resolution: buf.sample_rate as f32 / window_size as f32,
-        sample_rate: buf.sample_rate,
-    }
+    Spectrum::from_magnitudes(magnitudes, freq_resolution, buf.sample_rate, window_size)
 }
 
 /// In-place radix-2 Cooley-Tukey FFT.

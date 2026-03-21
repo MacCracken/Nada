@@ -4,9 +4,9 @@
 
 ---
 
-## v0.20.4 (current) — Consumer-Driven Features
+## v0.21.3 (current) — Per-Channel Analysis, Spectrum Enrichment, LevelMeter
 
-See CHANGELOG.md for full v0.20.3 and v0.20.4 release notes.
+See CHANGELOG.md for full release notes.
 
 ---
 

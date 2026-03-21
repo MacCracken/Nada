@@ -23,13 +23,58 @@ use crate::buffer::AudioBuffer;
 pub struct Spectrum {
     /// Magnitude bins (linear scale, 0.0–1.0 normalized).
     pub magnitudes: Vec<f32>,
+    /// Magnitude bins in dB (relative to peak).
+    pub magnitude_db: Vec<f32>,
     /// Frequency resolution (Hz per bin).
     pub freq_resolution: f32,
     /// Sample rate used for analysis.
     pub sample_rate: u32,
+    /// FFT window size used.
+    pub fft_size: usize,
+    /// Frequency of the peak bin (Hz).
+    pub peak_frequency: f32,
+    /// Magnitude of the peak bin (dB).
+    pub peak_magnitude_db: f32,
 }
 
 impl Spectrum {
+    /// Construct a Spectrum from linear magnitudes, computing dB and peak fields.
+    pub(crate) fn from_magnitudes(
+        magnitudes: Vec<f32>,
+        freq_resolution: f32,
+        sample_rate: u32,
+        fft_size: usize,
+    ) -> Self {
+        let magnitude_db: Vec<f32> = magnitudes
+            .iter()
+            .map(|&m| if m > 1e-10 { 20.0 * m.log10() } else { -200.0 })
+            .collect();
+
+        let (peak_bin_idx, peak_mag) = magnitudes
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
+            .map(|(i, &m)| (i, m))
+            .unwrap_or((0, 0.0));
+
+        let peak_frequency = peak_bin_idx as f32 * freq_resolution;
+        let peak_magnitude_db = if peak_mag > 1e-10 {
+            20.0 * peak_mag.log10()
+        } else {
+            -200.0
+        };
+
+        Self {
+            magnitudes,
+            magnitude_db,
+            freq_resolution,
+            sample_rate,
+            fft_size,
+            peak_frequency,
+            peak_magnitude_db,
+        }
+    }
+
     /// Number of frequency bins.
     pub fn bin_count(&self) -> usize {
         self.magnitudes.len()
@@ -126,11 +171,8 @@ pub fn spectrum_dft(buf: &AudioBuffer, window_size: usize) -> Spectrum {
         }
     }
 
-    Spectrum {
-        magnitudes,
-        freq_resolution: buf.sample_rate as f32 / n as f32,
-        sample_rate: buf.sample_rate,
-    }
+    let freq_resolution = buf.sample_rate as f32 / n as f32;
+    Spectrum::from_magnitudes(magnitudes, freq_resolution, buf.sample_rate, n)
 }
 
 /// Compute integrated loudness in LUFS (EBU R128 simplified).

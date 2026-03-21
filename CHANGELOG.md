@@ -5,16 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.20.5] — 2026-03-21
+## [0.21.3] — 2026-03-21
+
+### Changed
+
+#### Analysis — BREAKING
+- `DynamicsAnalysis` — all fields upgraded from scalar `f32` to per-channel `Vec<f32>`: `peak`, `peak_db`, `true_peak`, `true_peak_db`, `rms`, `rms_db`, `crest_factor_db`. Added `lufs: f32`, `frame_count: usize`, `channel_count: u32`. Convenience methods: `max_peak()`, `max_peak_db()`, `max_true_peak()`, `max_true_peak_db()`, `mean_rms()`, `mean_crest_factor_db()` for whole-buffer summaries
+- `Spectrum` — added `magnitude_db: Vec<f32>`, `fft_size: usize`, `peak_frequency: f32`, `peak_magnitude_db: f32` fields. All constructed via internal `from_magnitudes()` which computes dB and peak fields automatically
 
 ### Added
 
 #### Analysis
-- `Spectrum::spectral_centroid()` — weighted mean frequency by magnitude, a brightness indicator
+- `Spectrum::spectral_centroid()` — weighted mean frequency by magnitude (brightness indicator)
 - `Spectrum::spectral_rolloff(threshold)` — frequency below which a given fraction of spectral energy sits (timbral shape descriptor)
 
 #### Metering
-- `LevelMeter` — block-accumulating audio level meter with peak, RMS, LUFS, and peak-hold tracking. Accumulates statistics across multiple `process()` calls and computes integrated LUFS using simplified EBU R128 gating (absolute gate at -70 LUFS, relative gate at mean-10 LU). Includes per-channel peak hold with configurable decay coefficient. Complements the existing lock-free `PeakMeter`/`MeterBank` for RT-safe metering
+- `LevelMeter` — block-accumulating audio level meter with peak, RMS, LUFS, and peak-hold tracking. Accumulates statistics across multiple `process()` calls and computes integrated LUFS using simplified EBU R128 gating (absolute gate at -70 LUFS, relative gate at mean-10 LU). Includes per-channel peak hold with configurable decay coefficient
+
+---
+
+## [0.20.5] — 2026-03-21
+
+Yanked — superseded by 0.21.3 which includes the same features plus breaking API improvements.
 
 ---
 

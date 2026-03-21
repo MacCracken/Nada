@@ -130,7 +130,7 @@
 //!
 //! // Dynamics (true peak, crest factor, dynamic range)
 //! let dyn_ = analyze_dynamics(&buf);
-//! println!("True peak: {:.2} dB, Crest: {:.1} dB", dyn_.true_peak_db, dyn_.crest_factor_db);
+//! println!("True peak: {:.2} dB, Crest: {:.1} dB", dyn_.max_true_peak_db(), dyn_.mean_crest_factor_db());
 //!
 //! // EBU R128 loudness (K-weighted, gated)
 //! let r128 = measure_r128(&buf);

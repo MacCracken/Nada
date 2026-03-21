@@ -31,11 +31,13 @@ fn main() {
     println!("Dynamics:");
     println!(
         "  Peak: {:.2} dB, True peak: {:.2} dB",
-        dyn_.peak_db, dyn_.true_peak_db
+        dyn_.max_peak_db(),
+        dyn_.max_true_peak_db()
     );
     println!(
         "  RMS: {:.2} dB, Crest factor: {:.1} dB",
-        dyn_.rms_db, dyn_.crest_factor_db
+        dyn_.rms_db.first().unwrap_or(&f32::NEG_INFINITY),
+        dyn_.mean_crest_factor_db()
     );
     println!("  Dynamic range: {:.1} dB", dyn_.dynamic_range_db);
 
