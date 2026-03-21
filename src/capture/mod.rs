@@ -12,11 +12,15 @@
 //! PipeWire thread ──[AudioBuffer]──► capture channel ──► consumer
 //! ```
 
+pub mod record;
+
 #[cfg(feature = "pipewire")]
 mod pw;
 
 #[cfg(feature = "pipewire")]
 pub use pw::*;
+
+pub use record::{LoopRecordManager, RecordManager, RecordingMode};
 
 use serde::{Deserialize, Serialize};
 

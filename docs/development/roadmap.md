@@ -73,26 +73,25 @@ Completed items are in [CHANGELOG.md](../../CHANGELOG.md).
 
 ## Next
 
-### v0.23.3 — RT Infrastructure & DSP Gaps
+### v0.23.3 — RT Infrastructure & DSP Gaps (completed)
 
 #### Lock-free metering (`meter`)
-- [ ] `PeakMeter` — stereo peak levels via `AtomicU32` (f32 bit patterns, no mutex)
-- [ ] `MeterBank` — growable slot bank, pre-allocated
-- [ ] `SharedMeterBank` — `Arc`-wrapped for multi-thread sharing
-      _Source: shruti-engine/src/meter.rs_
+- [x] `PeakMeter` — stereo peak levels via `AtomicU32` (f32 bit patterns, no mutex)
+- [x] `MeterBank` — growable slot bank with dynamic activation, pre-allocated
+- [x] `SharedMeterBank` — `Arc`-wrapped, thread-safe factory function
 
 #### Audio graph (`graph`)
-- [ ] `AudioNode` trait — name, num_inputs, num_outputs, `process()`, `is_finished()`
-- [ ] `Graph` — non-RT builder: add nodes, connect edges
-- [ ] `ExecutionPlan` — compiled topological order (Kahn's algorithm, cycle detection)
-- [ ] `GraphProcessor` — RT-thread processor with double-buffered plan swapping
-- [ ] `NodeId` — atomic ID generator
-      _Source: shruti-engine/src/graph/_
+- [x] `AudioNode` trait — name, num_inputs, num_outputs, `process()`, `is_finished()`
+- [x] `Graph` — non-RT builder: add nodes, connect edges
+- [x] `ExecutionPlan` — compiled topological order (Kahn's algorithm, cycle detection)
+- [x] `GraphProcessor` — RT-thread processor with double-buffered plan swapping via `try_lock()` fallback
+- [x] `GraphSwapHandle` — non-RT handle for swapping plans
+- [x] `NodeId` — atomic ID generator
 
-#### Ring-buffer recording (`capture`)
-- [ ] `RecordManager` — lock-free ring buffer (rtrb) → accumulator thread → output
-- [ ] `LoopRecordManager` — loop-aware recording with sentinel-based take splitting
-      _Source: shruti-engine/src/record.rs_
+#### Ring-buffer recording (`capture::record`)
+- [x] `RecordManager` — channel-based RT→accumulator pipeline, non-blocking push, overflow counting
+- [x] `LoopRecordManager` — loop-aware recording with marker-based take splitting
+- [x] `RecordingMode` — Normal, Overdub, Replace
 
 #### DSP (completed)
 - [x] `StereoPanner` — constant-power (sin/cos) panning

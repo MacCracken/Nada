@@ -68,6 +68,8 @@ pub mod capture;
 pub mod clock;
 pub mod dsp;
 pub mod ffi;
+pub mod graph;
+pub mod meter;
 pub mod midi;
 
 #[cfg(feature = "simd")]
