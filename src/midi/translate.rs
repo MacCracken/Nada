@@ -177,7 +177,10 @@ mod tests {
     #[test]
     fn cc_7_to_32_max() {
         let v32 = cc_7_to_32(127);
-        assert!(v32 > 4_000_000_000, "max CC should be near u32::MAX, got {v32}");
+        assert!(
+            v32 > 4_000_000_000,
+            "max CC should be near u32::MAX, got {v32}"
+        );
     }
 
     #[test]

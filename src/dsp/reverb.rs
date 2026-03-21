@@ -31,9 +31,15 @@ pub struct ReverbParams {
 impl ReverbParams {
     /// Validate parameters.
     pub fn validate(&self) -> Result<(), &'static str> {
-        if !(0.0..=1.0).contains(&self.room_size) { return Err("room_size must be 0.0–1.0"); }
-        if !(0.0..=1.0).contains(&self.damping) { return Err("damping must be 0.0–1.0"); }
-        if !(0.0..=1.0).contains(&self.mix) { return Err("mix must be 0.0–1.0"); }
+        if !(0.0..=1.0).contains(&self.room_size) {
+            return Err("room_size must be 0.0–1.0");
+        }
+        if !(0.0..=1.0).contains(&self.damping) {
+            return Err("damping must be 0.0–1.0");
+        }
+        if !(0.0..=1.0).contains(&self.mix) {
+            return Err("mix must be 0.0–1.0");
+        }
         Ok(())
     }
 }
@@ -263,7 +269,11 @@ impl Reverb {
         for comb in self.combs_l.iter_mut().chain(self.combs_r.iter_mut()) {
             comb.reset();
         }
-        for ap in self.allpasses_l.iter_mut().chain(self.allpasses_r.iter_mut()) {
+        for ap in self
+            .allpasses_l
+            .iter_mut()
+            .chain(self.allpasses_r.iter_mut())
+        {
             ap.reset();
         }
     }
@@ -306,7 +316,10 @@ mod tests {
             let sum_sq: f64 = tail.iter().map(|s| (*s as f64) * (*s as f64)).sum();
             (sum_sq / tail.len() as f64).sqrt() as f32
         };
-        assert!(tail_rms > 0.001, "Reverb should produce a tail, got RMS={tail_rms}");
+        assert!(
+            tail_rms > 0.001,
+            "Reverb should produce a tail, got RMS={tail_rms}"
+        );
     }
 
     #[test]
@@ -332,7 +345,10 @@ mod tests {
             let sum_sq: f64 = tail.iter().map(|s| (*s as f64) * (*s as f64)).sum();
             (sum_sq / tail.len() as f64).sqrt() as f32
         };
-        assert!(late_tail_rms < 0.01, "Minimal reverb should have short tail");
+        assert!(
+            late_tail_rms < 0.01,
+            "Minimal reverb should have short tail"
+        );
     }
 
     #[test]

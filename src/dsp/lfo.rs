@@ -58,7 +58,11 @@ impl Lfo {
                 4.0 * (t - 0.5).abs() - 1.0
             }
             LfoShape::Square => {
-                if self.phase < 0.5 { 1.0 } else { -1.0 }
+                if self.phase < 0.5 {
+                    1.0
+                } else {
+                    -1.0
+                }
             }
             LfoShape::SawUp => (2.0 * self.phase - 1.0) as f32,
             LfoShape::SawDown => (1.0 - 2.0 * self.phase) as f32,
@@ -132,8 +136,12 @@ mod tests {
         let mut has_neg = false;
         for _ in 0..1000 {
             let v = lfo.tick();
-            if v > 0.3 { has_pos = true; }
-            if v < -0.3 { has_neg = true; }
+            if v > 0.3 {
+                has_pos = true;
+            }
+            if v < -0.3 {
+                has_neg = true;
+            }
         }
         assert!(has_pos && has_neg);
     }
@@ -155,8 +163,12 @@ mod tests {
         let mut values = std::collections::HashSet::new();
         for _ in 0..44100 {
             let v = lfo.tick();
-            if v > 0.5 { values.insert(1); }
-            if v < -0.5 { values.insert(-1); }
+            if v > 0.5 {
+                values.insert(1);
+            }
+            if v < -0.5 {
+                values.insert(-1);
+            }
         }
         assert!(values.contains(&1) && values.contains(&-1));
     }
@@ -201,13 +213,18 @@ mod tests {
             }
             prev = v;
         }
-        assert!(values.len() > 5, "S&H should change multiple times per second");
+        assert!(
+            values.len() > 5,
+            "S&H should change multiple times per second"
+        );
     }
 
     #[test]
     fn reset_clears() {
         let mut lfo = Lfo::new(LfoShape::Sine, 10.0, 1.0, 44100);
-        for _ in 0..1000 { lfo.tick(); }
+        for _ in 0..1000 {
+            lfo.tick();
+        }
         lfo.reset();
         assert!((lfo.phase).abs() < f64::EPSILON);
     }

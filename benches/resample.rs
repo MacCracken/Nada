@@ -19,21 +19,27 @@ fn bench_resample_linear_48000_to_44100(c: &mut Criterion) {
 fn bench_resample_sinc_draft(c: &mut Criterion) {
     let buf = AudioBuffer::from_interleaved(vec![0.5; 88200], 2, 44100).unwrap();
     c.bench_function("resample_sinc_draft_stereo_1s", |bench| {
-        bench.iter(|| nada::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Draft).unwrap())
+        bench.iter(|| {
+            nada::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Draft).unwrap()
+        })
     });
 }
 
 fn bench_resample_sinc_good(c: &mut Criterion) {
     let buf = AudioBuffer::from_interleaved(vec![0.5; 88200], 2, 44100).unwrap();
     c.bench_function("resample_sinc_good_stereo_1s", |bench| {
-        bench.iter(|| nada::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Good).unwrap())
+        bench.iter(|| {
+            nada::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Good).unwrap()
+        })
     });
 }
 
 fn bench_resample_sinc_best(c: &mut Criterion) {
     let buf = AudioBuffer::from_interleaved(vec![0.5; 88200], 2, 44100).unwrap();
     c.bench_function("resample_sinc_best_stereo_1s", |bench| {
-        bench.iter(|| nada::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Best).unwrap())
+        bench.iter(|| {
+            nada::buffer::resample::resample_sinc(&buf, 48000, ResampleQuality::Best).unwrap()
+        })
     });
 }
 

@@ -62,8 +62,13 @@ impl ParametricEq {
         let bands = bands
             .into_iter()
             .map(|cfg| {
-                let filt =
-                    BiquadFilter::new(cfg.to_filter_type(), cfg.freq_hz, cfg.q, sample_rate, channels);
+                let filt = BiquadFilter::new(
+                    cfg.to_filter_type(),
+                    cfg.freq_hz,
+                    cfg.q,
+                    sample_rate,
+                    channels,
+                );
                 (cfg, filt)
             })
             .collect();
@@ -142,15 +147,13 @@ mod tests {
 
     #[test]
     fn flat_eq_passthrough() {
-        let bands = vec![
-            EqBandConfig {
-                band_type: BandType::Peaking,
-                freq_hz: 1000.0,
-                gain_db: 0.0,
-                q: 1.0,
-                enabled: true,
-            },
-        ];
+        let bands = vec![EqBandConfig {
+            band_type: BandType::Peaking,
+            freq_hz: 1000.0,
+            gain_db: 0.0,
+            q: 1.0,
+            enabled: true,
+        }];
         let mut eq = ParametricEq::new(bands, 44100, 1);
         let mut buf = make_sine(440.0, 44100, 4096);
         let original_rms = buf.rms();
@@ -289,13 +292,16 @@ mod tests {
     #[test]
     fn set_band_out_of_bounds() {
         let mut eq = ParametricEq::new(vec![], 44100, 1);
-        eq.set_band(99, EqBandConfig {
-            band_type: BandType::Peaking,
-            freq_hz: 1000.0,
-            gain_db: 0.0,
-            q: 1.0,
-            enabled: true,
-        }); // should not panic
+        eq.set_band(
+            99,
+            EqBandConfig {
+                band_type: BandType::Peaking,
+                freq_hz: 1000.0,
+                gain_db: 0.0,
+                q: 1.0,
+                enabled: true,
+            },
+        ); // should not panic
         assert_eq!(eq.band_count(), 0);
     }
 

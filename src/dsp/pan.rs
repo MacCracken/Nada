@@ -101,8 +101,7 @@ mod tests {
     #[test]
     fn process_stereo() {
         let panner = StereoPanner::new(-1.0); // full left
-        let mut buf =
-            AudioBuffer::from_interleaved(vec![1.0, 1.0, 1.0, 1.0], 2, 44100).unwrap();
+        let mut buf = AudioBuffer::from_interleaved(vec![1.0, 1.0, 1.0, 1.0], 2, 44100).unwrap();
         panner.process(&mut buf);
         assert!((buf.samples[0] - 1.0).abs() < 0.01); // L preserved
         assert!(buf.samples[1].abs() < 0.01); // R zeroed

@@ -42,10 +42,18 @@ impl Default for CompressorParams {
 impl CompressorParams {
     /// Validate parameters. Returns an error description if invalid.
     pub fn validate(&self) -> Result<(), &'static str> {
-        if self.ratio < 1.0 { return Err("ratio must be >= 1.0"); }
-        if self.attack_ms < 0.0 { return Err("attack_ms must be >= 0.0"); }
-        if self.release_ms < 0.0 { return Err("release_ms must be >= 0.0"); }
-        if self.knee_db < 0.0 { return Err("knee_db must be >= 0.0"); }
+        if self.ratio < 1.0 {
+            return Err("ratio must be >= 1.0");
+        }
+        if self.attack_ms < 0.0 {
+            return Err("attack_ms must be >= 0.0");
+        }
+        if self.release_ms < 0.0 {
+            return Err("release_ms must be >= 0.0");
+        }
+        if self.knee_db < 0.0 {
+            return Err("knee_db must be >= 0.0");
+        }
         Ok(())
     }
 }
@@ -182,9 +190,7 @@ mod tests {
 
     fn make_sine(amplitude: f32, frames: usize) -> AudioBuffer {
         let samples: Vec<f32> = (0..frames)
-            .map(|i| {
-                amplitude * (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 44100.0).sin()
-            })
+            .map(|i| amplitude * (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 44100.0).sin())
             .collect();
         AudioBuffer::from_interleaved(samples, 1, 44100).unwrap()
     }

@@ -161,9 +161,8 @@ fn windowed_sinc(x: f64, half_width: f64) -> f64 {
     }
     let t = (x / half_width + 1.0) * 0.5; // Normalize to [0, 1]
     let tau = std::f64::consts::TAU;
-    let window =
-        0.35875 - 0.48829 * (tau * t).cos() + 0.14128 * (2.0 * tau * t).cos()
-            - 0.01168 * (3.0 * tau * t).cos();
+    let window = 0.35875 - 0.48829 * (tau * t).cos() + 0.14128 * (2.0 * tau * t).cos()
+        - 0.01168 * (3.0 * tau * t).cos();
 
     sinc * window
 }

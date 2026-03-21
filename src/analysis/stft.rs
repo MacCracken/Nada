@@ -56,8 +56,7 @@ pub fn stft(buf: &AudioBuffer, window_size: usize, hop_size: usize) -> Spectrogr
     // Pre-compute Hann window
     let window: Vec<f64> = (0..window_size)
         .map(|i| {
-            0.5 * (1.0
-                - (2.0 * std::f64::consts::PI * i as f64 / (window_size - 1) as f64).cos())
+            0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / (window_size - 1) as f64).cos())
         })
         .collect();
 
@@ -85,8 +84,7 @@ pub fn stft(buf: &AudioBuffer, window_size: usize, hop_size: usize) -> Spectrogr
 
         let mut magnitudes = Vec::with_capacity(num_bins);
         for k in 0..num_bins {
-            let mag =
-                ((real[k] * real[k] + imag[k] * imag[k]).sqrt() / window_size as f64) as f32;
+            let mag = ((real[k] * real[k] + imag[k] * imag[k]).sqrt() / window_size as f64) as f32;
             magnitudes.push(mag);
         }
 

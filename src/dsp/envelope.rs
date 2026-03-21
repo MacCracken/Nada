@@ -171,7 +171,12 @@ mod tests {
 
     #[test]
     fn attack_ramps_up() {
-        let params = AdsrParams { attack: 0.01, decay: 0.01, sustain: 0.5, release: 0.01 };
+        let params = AdsrParams {
+            attack: 0.01,
+            decay: 0.01,
+            sustain: 0.5,
+            release: 0.01,
+        };
         let mut env = Envelope::new(params, 44100);
         env.trigger();
         assert_eq!(env.state(), EnvelopeState::Attack);
@@ -186,7 +191,12 @@ mod tests {
 
     #[test]
     fn sustain_holds() {
-        let params = AdsrParams { attack: 0.001, decay: 0.001, sustain: 0.6, release: 0.1 };
+        let params = AdsrParams {
+            attack: 0.001,
+            decay: 0.001,
+            sustain: 0.6,
+            release: 0.1,
+        };
         let mut env = Envelope::new(params, 44100);
         env.trigger();
         // Tick through attack + decay
@@ -199,27 +209,45 @@ mod tests {
 
     #[test]
     fn release_decays_to_zero() {
-        let params = AdsrParams { attack: 0.001, decay: 0.001, sustain: 0.7, release: 0.01 };
+        let params = AdsrParams {
+            attack: 0.001,
+            decay: 0.001,
+            sustain: 0.7,
+            release: 0.01,
+        };
         let mut env = Envelope::new(params, 44100);
         env.trigger();
-        for _ in 0..500 { env.tick(); } // reach sustain
+        for _ in 0..500 {
+            env.tick();
+        } // reach sustain
         env.release();
         assert_eq!(env.state(), EnvelopeState::Release);
-        for _ in 0..1000 { env.tick(); }
+        for _ in 0..1000 {
+            env.tick();
+        }
         assert!(env.is_finished());
         assert!(env.level() < 0.01);
     }
 
     #[test]
     fn release_from_attack() {
-        let params = AdsrParams { attack: 0.1, decay: 0.1, sustain: 0.5, release: 0.01 };
+        let params = AdsrParams {
+            attack: 0.1,
+            decay: 0.1,
+            sustain: 0.5,
+            release: 0.01,
+        };
         let mut env = Envelope::new(params, 44100);
         env.trigger();
-        for _ in 0..100 { env.tick(); } // partway through attack
+        for _ in 0..100 {
+            env.tick();
+        } // partway through attack
         let level_at_release = env.level();
         env.release();
         // Should release smoothly from current level
-        for _ in 0..1000 { env.tick(); }
+        for _ in 0..1000 {
+            env.tick();
+        }
         assert!(env.is_finished());
         let _ = level_at_release; // used for smooth release
     }
@@ -228,7 +256,9 @@ mod tests {
     fn reset_goes_idle() {
         let mut env = Envelope::new(AdsrParams::default(), 44100);
         env.trigger();
-        for _ in 0..100 { env.tick(); }
+        for _ in 0..100 {
+            env.tick();
+        }
         env.reset();
         assert!(env.is_finished());
         assert_eq!(env.level(), 0.0);
@@ -237,7 +267,12 @@ mod tests {
     #[test]
     fn set_params_updates() {
         let mut env = Envelope::new(AdsrParams::default(), 44100);
-        env.set_params(AdsrParams { attack: 0.5, decay: 0.2, sustain: 0.3, release: 1.0 });
+        env.set_params(AdsrParams {
+            attack: 0.5,
+            decay: 0.2,
+            sustain: 0.3,
+            release: 1.0,
+        });
         env.trigger();
         // Should use new attack time
         env.tick();

@@ -163,9 +163,7 @@ impl MidiClip {
             velocity,
             channel,
         };
-        let idx = self
-            .notes
-            .partition_point(|n| n.position <= position);
+        let idx = self.notes.partition_point(|n| n.position <= position);
         self.notes.insert(idx, event);
     }
 
@@ -198,10 +196,7 @@ impl MidiClip {
 
     /// Note-on events starting at exactly the given frame.
     pub fn note_ons_at(&self, frame: FramePos) -> Vec<&NoteEvent> {
-        self.notes
-            .iter()
-            .filter(|n| n.position == frame)
-            .collect()
+        self.notes.iter().filter(|n| n.position == frame).collect()
     }
 
     /// Note-off events ending at exactly the given frame.
@@ -218,7 +213,9 @@ impl MidiClip {
     pub fn events_in_range(&self, start: FramePos, end: FramePos) -> Vec<&NoteEvent> {
         // Binary search for first note that could be active in range
         // A note is relevant if position < end AND position + duration > start
-        let first = self.notes.partition_point(|n| n.position + n.duration <= start);
+        let first = self
+            .notes
+            .partition_point(|n| n.position + n.duration <= start);
         self.notes[first..]
             .iter()
             .take_while(|n| n.position < end)

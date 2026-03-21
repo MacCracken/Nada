@@ -45,9 +45,8 @@ pub fn compute_waveform(buf: &AudioBuffer, peaks_per_second: u32) -> WaveformDat
     let samples_per_peak = samples_per_peak.max(1);
     let num_peaks = buf.frames.div_ceil(samples_per_peak);
 
-    let mut channels: Vec<Vec<(f32, f32)>> = (0..ch)
-        .map(|_| Vec::with_capacity(num_peaks))
-        .collect();
+    let mut channels: Vec<Vec<(f32, f32)>> =
+        (0..ch).map(|_| Vec::with_capacity(num_peaks)).collect();
 
     for peak_idx in 0..num_peaks {
         let start_frame = peak_idx * samples_per_peak;

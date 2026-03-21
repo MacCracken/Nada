@@ -141,7 +141,10 @@ mod tests {
     fn velocity_curve_soft() {
         // Soft (sqrt) should map mid-range higher than linear
         let soft_64 = VelocityCurve::Soft.apply(64);
-        assert!(soft_64 > 64, "Soft curve at 64 should be > 64, got {soft_64}");
+        assert!(
+            soft_64 > 64,
+            "Soft curve at 64 should be > 64, got {soft_64}"
+        );
         assert_eq!(VelocityCurve::Soft.apply(0), 0);
         assert_eq!(VelocityCurve::Soft.apply(127), 127);
     }
@@ -150,7 +153,10 @@ mod tests {
     fn velocity_curve_hard() {
         // Hard (square) should map mid-range lower than linear
         let hard_64 = VelocityCurve::Hard.apply(64);
-        assert!(hard_64 < 64, "Hard curve at 64 should be < 64, got {hard_64}");
+        assert!(
+            hard_64 < 64,
+            "Hard curve at 64 should be < 64, got {hard_64}"
+        );
         assert_eq!(VelocityCurve::Hard.apply(0), 0);
         assert_eq!(VelocityCurve::Hard.apply(127), 127);
     }

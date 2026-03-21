@@ -2,7 +2,7 @@
 
 use nada::analysis;
 use nada::buffer::{AudioBuffer, mix};
-use nada::dsp::{self, Compressor, CompressorParams, ParametricEq, EqBandConfig, BandType};
+use nada::dsp::{self, BandType, Compressor, CompressorParams, EqBandConfig, ParametricEq};
 
 fn main() {
     // Generate two sine wave sources
@@ -22,17 +22,40 @@ fn main() {
     println!("Mixed: {} frames, peak={:.3}", mixed.frames, mixed.peak());
 
     // EQ: cut low rumble, boost presence
-    let mut eq = ParametricEq::new(vec![
-        EqBandConfig { band_type: BandType::HighPass, freq_hz: 60.0, gain_db: 0.0, q: 0.707, enabled: true },
-        EqBandConfig { band_type: BandType::Peaking, freq_hz: 3000.0, gain_db: 2.0, q: 1.5, enabled: true },
-    ], sr, 1);
+    let mut eq = ParametricEq::new(
+        vec![
+            EqBandConfig {
+                band_type: BandType::HighPass,
+                freq_hz: 60.0,
+                gain_db: 0.0,
+                q: 0.707,
+                enabled: true,
+            },
+            EqBandConfig {
+                band_type: BandType::Peaking,
+                freq_hz: 3000.0,
+                gain_db: 2.0,
+                q: 1.5,
+                enabled: true,
+            },
+        ],
+        sr,
+        1,
+    );
     eq.process(&mut mixed);
 
     // Compress
-    let mut comp = Compressor::new(CompressorParams {
-        threshold_db: -12.0, ratio: 3.0, attack_ms: 10.0, release_ms: 80.0,
-        makeup_gain_db: 2.0, knee_db: 6.0,
-    }, sr);
+    let mut comp = Compressor::new(
+        CompressorParams {
+            threshold_db: -12.0,
+            ratio: 3.0,
+            attack_ms: 10.0,
+            release_ms: 80.0,
+            makeup_gain_db: 2.0,
+            knee_db: 6.0,
+        },
+        sr,
+    );
     comp.process(&mut mixed);
 
     // Normalize
@@ -42,5 +65,8 @@ fn main() {
     let lufs = analysis::loudness_lufs(&mixed);
     let spec = analysis::spectrum_fft(&mixed, 4096);
     println!("Output: peak={:.3}, LUFS={:.1}", mixed.peak(), lufs);
-    println!("Dominant freq: {:.1} Hz", spec.dominant_frequency().unwrap_or(0.0));
+    println!(
+        "Dominant freq: {:.1} Hz",
+        spec.dominant_frequency().unwrap_or(0.0)
+    );
 }

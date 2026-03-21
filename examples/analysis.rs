@@ -1,6 +1,8 @@
 //! Analyze audio: FFT, EBU R128, dynamics, chromagram, onset detection.
 
-use nada::analysis::{spectrum_fft, analyze_dynamics, measure_r128, chromagram, detect_onsets, compute_stft};
+use nada::analysis::{
+    analyze_dynamics, chromagram, compute_stft, detect_onsets, measure_r128, spectrum_fft,
+};
 use nada::buffer::AudioBuffer;
 
 fn main() {
@@ -14,14 +16,27 @@ fn main() {
 
     // FFT spectrum
     let spec = spectrum_fft(&buf, 4096);
-    println!("FFT: {} bins, resolution={:.1} Hz", spec.bin_count(), spec.freq_resolution);
-    println!("  Dominant: {:.1} Hz", spec.dominant_frequency().unwrap_or(0.0));
+    println!(
+        "FFT: {} bins, resolution={:.1} Hz",
+        spec.bin_count(),
+        spec.freq_resolution
+    );
+    println!(
+        "  Dominant: {:.1} Hz",
+        spec.dominant_frequency().unwrap_or(0.0)
+    );
 
     // Dynamics
     let dyn_ = analyze_dynamics(&buf);
     println!("Dynamics:");
-    println!("  Peak: {:.2} dB, True peak: {:.2} dB", dyn_.peak_db, dyn_.true_peak_db);
-    println!("  RMS: {:.2} dB, Crest factor: {:.1} dB", dyn_.rms_db, dyn_.crest_factor_db);
+    println!(
+        "  Peak: {:.2} dB, True peak: {:.2} dB",
+        dyn_.peak_db, dyn_.true_peak_db
+    );
+    println!(
+        "  RMS: {:.2} dB, Crest factor: {:.1} dB",
+        dyn_.rms_db, dyn_.crest_factor_db
+    );
     println!("  Dynamic range: {:.1} dB", dyn_.dynamic_range_db);
 
     // EBU R128
@@ -33,7 +48,10 @@ fn main() {
 
     // Chromagram
     let chroma = chromagram(&buf, 8192);
-    println!("Chromagram: dominant pitch class = {}", chroma.dominant_name());
+    println!(
+        "Chromagram: dominant pitch class = {}",
+        chroma.dominant_name()
+    );
 
     // STFT spectrogram
     let sg = compute_stft(&buf, 2048, 512);

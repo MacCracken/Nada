@@ -30,9 +30,15 @@ impl Default for LimiterParams {
 impl LimiterParams {
     /// Validate parameters.
     pub fn validate(&self) -> Result<(), &'static str> {
-        if self.ceiling_db > 0.0 { return Err("ceiling_db should be <= 0.0"); }
-        if self.release_ms < 0.0 { return Err("release_ms must be >= 0.0"); }
-        if self.knee_db < 0.0 { return Err("knee_db must be >= 0.0"); }
+        if self.ceiling_db > 0.0 {
+            return Err("ceiling_db should be <= 0.0");
+        }
+        if self.release_ms < 0.0 {
+            return Err("release_ms must be >= 0.0");
+        }
+        if self.knee_db < 0.0 {
+            return Err("knee_db must be >= 0.0");
+        }
         Ok(())
     }
 }
@@ -149,9 +155,7 @@ mod tests {
 
     fn make_sine(amplitude: f32, frames: usize) -> AudioBuffer {
         let samples: Vec<f32> = (0..frames)
-            .map(|i| {
-                amplitude * (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 44100.0).sin()
-            })
+            .map(|i| amplitude * (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 44100.0).sin())
             .collect();
         AudioBuffer::from_interleaved(samples, 1, 44100).unwrap()
     }

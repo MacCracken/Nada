@@ -7,7 +7,11 @@ use crate::dsp;
 
 // Strategy: generate valid audio buffers
 fn arb_audio_buffer() -> impl Strategy<Value = AudioBuffer> {
-    (1u32..=8, 1usize..4096, prop::collection::vec(-1.0f32..=1.0, 1..32768))
+    (
+        1u32..=8,
+        1usize..4096,
+        prop::collection::vec(-1.0f32..=1.0, 1..32768),
+    )
         .prop_filter_map("valid buffer", |(channels, _, samples)| {
             let len = samples.len();
             let frames = len / channels as usize;

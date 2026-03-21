@@ -182,7 +182,10 @@ impl GraphProcessor {
         if let Ok(mut pending) = self.pending_plan.try_lock()
             && let Some(new_plan) = pending.take()
         {
-            tracing::debug!(nodes = new_plan.order.len(), "GraphProcessor: swapped to new plan");
+            tracing::debug!(
+                nodes = new_plan.order.len(),
+                "GraphProcessor: swapped to new plan"
+            );
             self.current_plan = Some(new_plan);
             self.node_outputs.clear();
         }
@@ -221,9 +224,7 @@ impl GraphProcessor {
 
     /// Whether the current plan's last node is finished.
     pub fn is_finished(&self) -> bool {
-        self.current_plan
-            .as_ref()
-            .is_some_and(|p| p.is_finished())
+        self.current_plan.as_ref().is_some_and(|p| p.is_finished())
     }
 }
 
@@ -310,9 +311,15 @@ mod tests {
     // Simple passthrough node for testing
     struct PassthroughNode;
     impl AudioNode for PassthroughNode {
-        fn name(&self) -> &str { "passthrough" }
-        fn num_inputs(&self) -> usize { 1 }
-        fn num_outputs(&self) -> usize { 1 }
+        fn name(&self) -> &str {
+            "passthrough"
+        }
+        fn num_inputs(&self) -> usize {
+            1
+        }
+        fn num_outputs(&self) -> usize {
+            1
+        }
         fn process(&mut self, inputs: &[&AudioBuffer], output: &mut AudioBuffer) {
             if let Some(input) = inputs.first() {
                 output.samples.copy_from_slice(&input.samples);
@@ -324,9 +331,15 @@ mod tests {
         value: f32,
     }
     impl AudioNode for GeneratorNode {
-        fn name(&self) -> &str { "generator" }
-        fn num_inputs(&self) -> usize { 0 }
-        fn num_outputs(&self) -> usize { 1 }
+        fn name(&self) -> &str {
+            "generator"
+        }
+        fn num_inputs(&self) -> usize {
+            0
+        }
+        fn num_outputs(&self) -> usize {
+            1
+        }
         fn process(&mut self, _inputs: &[&AudioBuffer], output: &mut AudioBuffer) {
             for s in &mut output.samples {
                 *s = self.value;
@@ -334,11 +347,19 @@ mod tests {
         }
     }
 
-    struct GainNode { gain: f32, }
+    struct GainNode {
+        gain: f32,
+    }
     impl AudioNode for GainNode {
-        fn name(&self) -> &str { "gain" }
-        fn num_inputs(&self) -> usize { 1 }
-        fn num_outputs(&self) -> usize { 1 }
+        fn name(&self) -> &str {
+            "gain"
+        }
+        fn num_inputs(&self) -> usize {
+            1
+        }
+        fn num_outputs(&self) -> usize {
+            1
+        }
         fn process(&mut self, inputs: &[&AudioBuffer], output: &mut AudioBuffer) {
             if let Some(input) = inputs.first() {
                 for (i, s) in output.samples.iter_mut().enumerate() {
@@ -469,11 +490,19 @@ mod tests {
     fn execution_plan_is_finished() {
         struct FinishedNode;
         impl AudioNode for FinishedNode {
-            fn name(&self) -> &str { "finished" }
-            fn num_inputs(&self) -> usize { 0 }
-            fn num_outputs(&self) -> usize { 1 }
+            fn name(&self) -> &str {
+                "finished"
+            }
+            fn num_inputs(&self) -> usize {
+                0
+            }
+            fn num_outputs(&self) -> usize {
+                1
+            }
             fn process(&mut self, _inputs: &[&AudioBuffer], _output: &mut AudioBuffer) {}
-            fn is_finished(&self) -> bool { true }
+            fn is_finished(&self) -> bool {
+                true
+            }
         }
 
         let mut graph = Graph::new();
@@ -487,11 +516,19 @@ mod tests {
     fn graph_processor_is_finished() {
         struct FinishedNode;
         impl AudioNode for FinishedNode {
-            fn name(&self) -> &str { "finished" }
-            fn num_inputs(&self) -> usize { 0 }
-            fn num_outputs(&self) -> usize { 1 }
+            fn name(&self) -> &str {
+                "finished"
+            }
+            fn num_inputs(&self) -> usize {
+                0
+            }
+            fn num_outputs(&self) -> usize {
+                1
+            }
             fn process(&mut self, _inputs: &[&AudioBuffer], _output: &mut AudioBuffer) {}
-            fn is_finished(&self) -> bool { true }
+            fn is_finished(&self) -> bool {
+                true
+            }
         }
 
         let mut graph = Graph::new();
@@ -524,7 +561,12 @@ mod tests {
 
         let output = proc.process().unwrap();
         // Generator outputs 1.0, gain multiplies by 0.5
-        assert!(output.samples.iter().all(|&s| (s - 0.5).abs() < f32::EPSILON));
+        assert!(
+            output
+                .samples
+                .iter()
+                .all(|&s| (s - 0.5).abs() < f32::EPSILON)
+        );
     }
 
     #[test]

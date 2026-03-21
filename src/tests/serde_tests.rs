@@ -1,6 +1,8 @@
 //! Serde roundtrip tests for all serializable types.
 
 use crate::buffer::SampleFormat;
+use crate::capture::record::RecordingMode;
+use crate::capture::{AudioDevice, CaptureConfig, DeviceType, OutputConfig};
 use crate::clock::AudioClock;
 use crate::dsp::biquad::{BiquadCoeffs, FilterType};
 use crate::dsp::compressor::CompressorParams;
@@ -15,8 +17,6 @@ use crate::dsp::reverb::ReverbParams;
 use crate::midi::routing::{CcMapping, MidiRoute, VelocityCurve};
 use crate::midi::v2::{ControlChangeV2, NoteOnV2, UmpMessageType};
 use crate::midi::{ControlChange, MidiClip, MidiEvent, NoteEvent};
-use crate::capture::{AudioDevice, CaptureConfig, DeviceType, OutputConfig};
-use crate::capture::record::RecordingMode;
 
 macro_rules! serde_roundtrip {
     ($name:ident, $value:expr, $type:ty) => {
@@ -50,7 +50,11 @@ serde_roundtrip!(
 
 serde_roundtrip!(
     reverb_params,
-    ReverbParams { room_size: 0.6, damping: 0.4, mix: 0.3 },
+    ReverbParams {
+        room_size: 0.6,
+        damping: 0.4,
+        mix: 0.3
+    },
     ReverbParams
 );
 
@@ -92,47 +96,67 @@ serde_roundtrip!(band_type_notch, BandType::Notch, BandType);
 
 serde_roundtrip!(
     note_event,
-    NoteEvent { position: 100, duration: 500, note: 60, velocity: 100, channel: 0 },
+    NoteEvent {
+        position: 100,
+        duration: 500,
+        note: 60,
+        velocity: 100,
+        channel: 0
+    },
     NoteEvent
 );
 
 serde_roundtrip!(
     control_change,
-    ControlChange { position: 0, controller: 7, value: 100, channel: 0 },
+    ControlChange {
+        position: 0,
+        controller: 7,
+        value: 100,
+        channel: 0
+    },
     ControlChange
 );
 
 serde_roundtrip!(
     midi_event_note_on,
-    MidiEvent::NoteOn { position: 0, note: 60, velocity: 100, channel: 0 },
+    MidiEvent::NoteOn {
+        position: 0,
+        note: 60,
+        velocity: 100,
+        channel: 0
+    },
     MidiEvent
 );
 
-serde_roundtrip!(
-    midi_clip,
-    MidiClip::new("test", 0, 44100),
-    MidiClip
-);
+serde_roundtrip!(midi_clip, MidiClip::new("test", 0, 44100), MidiClip);
 
 serde_roundtrip!(
     note_on_v2,
-    NoteOnV2 { position: 0, note: 60, velocity: 32768, channel: 0, attribute_type: 0, attribute_data: 0 },
+    NoteOnV2 {
+        position: 0,
+        note: 60,
+        velocity: 32768,
+        channel: 0,
+        attribute_type: 0,
+        attribute_data: 0
+    },
     NoteOnV2
 );
 
 serde_roundtrip!(
     cc_v2,
-    ControlChangeV2 { position: 0, controller: 1, value: u32::MAX, channel: 0 },
+    ControlChangeV2 {
+        position: 0,
+        controller: 1,
+        value: u32::MAX,
+        channel: 0
+    },
     ControlChangeV2
 );
 
 serde_roundtrip!(ump_type, UmpMessageType::Midi2ChannelVoice, UmpMessageType);
 
-serde_roundtrip!(
-    velocity_curve_soft,
-    VelocityCurve::Soft,
-    VelocityCurve
-);
+serde_roundtrip!(velocity_curve_soft, VelocityCurve::Soft, VelocityCurve);
 
 serde_roundtrip!(
     velocity_curve_fixed,
@@ -140,35 +164,25 @@ serde_roundtrip!(
     VelocityCurve
 );
 
-serde_roundtrip!(
-    cc_mapping,
-    CcMapping::new(1, 0, 0.0, 1.0),
-    CcMapping
-);
+serde_roundtrip!(cc_mapping, CcMapping::new(1, 0, 0.0, 1.0), CcMapping);
 
-serde_roundtrip!(
-    capture_config,
-    CaptureConfig::default(),
-    CaptureConfig
-);
+serde_roundtrip!(capture_config, CaptureConfig::default(), CaptureConfig);
 
-serde_roundtrip!(
-    output_config,
-    OutputConfig::default(),
-    OutputConfig
-);
+serde_roundtrip!(output_config, OutputConfig::default(), OutputConfig);
 
 serde_roundtrip!(
     audio_device,
-    AudioDevice { id: 1, name: "Test".into(), device_type: DeviceType::Source, channels: 2, sample_rate: 48000 },
+    AudioDevice {
+        id: 1,
+        name: "Test".into(),
+        device_type: DeviceType::Source,
+        channels: 2,
+        sample_rate: 48000
+    },
     AudioDevice
 );
 
-serde_roundtrip!(
-    recording_mode,
-    RecordingMode::Overdub,
-    RecordingMode
-);
+serde_roundtrip!(recording_mode, RecordingMode::Overdub, RecordingMode);
 
 serde_roundtrip!(
     biquad_coeffs,

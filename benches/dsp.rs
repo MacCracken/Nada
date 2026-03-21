@@ -47,9 +47,27 @@ fn bench_biquad_lp_1s(c: &mut Criterion) {
 fn bench_parametric_eq_3band_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
     let bands = vec![
-        EqBandConfig { band_type: BandType::HighPass, freq_hz: 80.0, gain_db: 0.0, q: 0.707, enabled: true },
-        EqBandConfig { band_type: BandType::Peaking, freq_hz: 3000.0, gain_db: 3.0, q: 1.5, enabled: true },
-        EqBandConfig { band_type: BandType::HighShelf, freq_hz: 10000.0, gain_db: -2.0, q: 0.707, enabled: true },
+        EqBandConfig {
+            band_type: BandType::HighPass,
+            freq_hz: 80.0,
+            gain_db: 0.0,
+            q: 0.707,
+            enabled: true,
+        },
+        EqBandConfig {
+            band_type: BandType::Peaking,
+            freq_hz: 3000.0,
+            gain_db: 3.0,
+            q: 1.5,
+            enabled: true,
+        },
+        EqBandConfig {
+            band_type: BandType::HighShelf,
+            freq_hz: 10000.0,
+            gain_db: -2.0,
+            q: 0.707,
+            enabled: true,
+        },
     ];
     let mut eq = ParametricEq::new(bands, 44100, 2);
     c.bench_function("parametric_eq_3band_stereo_1s", |bench| {
@@ -59,7 +77,9 @@ fn bench_parametric_eq_3band_1s(c: &mut Criterion) {
 
 fn bench_parametric_eq_10band_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
-    let freqs = [31.0, 62.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0];
+    let freqs = [
+        31.0, 62.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0,
+    ];
     let bands: Vec<EqBandConfig> = freqs
         .iter()
         .map(|&f| EqBandConfig {
@@ -120,7 +140,11 @@ fn bench_panner_1s(c: &mut Criterion) {
 fn bench_limiter_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
     let mut limiter = nada::dsp::EnvelopeLimiter::new(
-        nada::dsp::LimiterParams { ceiling_db: -1.0, release_ms: 50.0, knee_db: 3.0 },
+        nada::dsp::LimiterParams {
+            ceiling_db: -1.0,
+            release_ms: 50.0,
+            knee_db: 3.0,
+        },
         44100,
     );
     c.bench_function("limiter_stereo_1s", |bench| {

@@ -31,7 +31,9 @@ pub fn noise_reduce(buf: &mut AudioBuffer, strength: f32) {
 
     // Pre-compute Hann window
     let window: Vec<f64> = (0..WINDOW_SIZE)
-        .map(|i| 0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / (WINDOW_SIZE - 1) as f64).cos()))
+        .map(|i| {
+            0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / (WINDOW_SIZE - 1) as f64).cos())
+        })
         .collect();
 
     // Process each channel independently
@@ -176,7 +178,8 @@ mod tests {
         assert!(
             buf.rms() > original_rms * 0.7,
             "Loud signal should survive: rms={} vs original={}",
-            buf.rms(), original_rms
+            buf.rms(),
+            original_rms
         );
     }
 
@@ -186,7 +189,8 @@ mod tests {
         let sr = 44100u32;
         let samples: Vec<f32> = (0..sr as usize)
             .map(|i| {
-                let signal = 0.5 * (2.0 * std::f32::consts::PI * 440.0 * i as f32 / sr as f32).sin();
+                let signal =
+                    0.5 * (2.0 * std::f32::consts::PI * 440.0 * i as f32 / sr as f32).sin();
                 let noise = 0.02 * ((i as f32 * 12345.6789).sin());
                 signal + noise
             })
@@ -218,7 +222,9 @@ mod tests {
 
     #[test]
     fn output_finite() {
-        let samples: Vec<f32> = (0..44100).map(|i| (i as f32 / 44100.0) * 2.0 - 1.0).collect();
+        let samples: Vec<f32> = (0..44100)
+            .map(|i| (i as f32 / 44100.0) * 2.0 - 1.0)
+            .collect();
         let mut buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
         noise_reduce(&mut buf, 1.0);
         assert!(buf.samples.iter().all(|s| s.is_finite()));

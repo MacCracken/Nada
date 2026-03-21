@@ -17,7 +17,14 @@ fn full_pipeline_mix_compress_normalize() {
     let mut mixed = mix(&[&a, &b]).unwrap();
     // Mixed peaks at 1.4 — compress then normalize
     let mut comp = Compressor::new(
-        CompressorParams { threshold_db: -4.0, ratio: 4.0, attack_ms: 0.01, release_ms: 0.01, makeup_gain_db: 0.0, knee_db: 0.0 },
+        CompressorParams {
+            threshold_db: -4.0,
+            ratio: 4.0,
+            attack_ms: 0.01,
+            release_ms: 0.01,
+            makeup_gain_db: 0.0,
+            knee_db: 0.0,
+        },
         44100,
     );
     comp.process(&mut mixed);

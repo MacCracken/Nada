@@ -138,8 +138,12 @@ mod tests {
         let mut has_negative = false;
         for _ in 0..44100 {
             let s = osc.sample(440.0);
-            if s > 0.1 { has_positive = true; }
-            if s < -0.1 { has_negative = true; }
+            if s > 0.1 {
+                has_positive = true;
+            }
+            if s < -0.1 {
+                has_negative = true;
+            }
         }
         assert!(has_positive && has_negative, "Sine should oscillate");
     }
@@ -165,8 +169,12 @@ mod tests {
         let mut has_low = false;
         for _ in 0..44100 {
             let s = osc.sample(440.0);
-            if s > 0.5 { has_high = true; }
-            if s < -0.5 { has_low = true; }
+            if s > 0.5 {
+                has_high = true;
+            }
+            if s < -0.5 {
+                has_low = true;
+            }
         }
         assert!(has_high && has_low);
     }
@@ -208,7 +216,13 @@ mod tests {
 
     #[test]
     fn all_waveforms_finite() {
-        for wf in [Waveform::Sine, Waveform::Saw, Waveform::Square, Waveform::Triangle, Waveform::Noise] {
+        for wf in [
+            Waveform::Sine,
+            Waveform::Saw,
+            Waveform::Square,
+            Waveform::Triangle,
+            Waveform::Noise,
+        ] {
             let mut osc = Oscillator::new(wf, 44100);
             for _ in 0..4096 {
                 let s = osc.sample(440.0);

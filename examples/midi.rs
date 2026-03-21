@@ -1,17 +1,17 @@
 //! MIDI: clips, voice management, translation, routing.
 
-use nada::midi::{MidiClip, NoteEvent};
+use nada::midi::routing::{CcMapping, MidiRoute, VelocityCurve};
+use nada::midi::translate::{note_event_to_v2, velocity_7_to_16};
 use nada::midi::voice::{VoiceManager, VoiceStealMode};
-use nada::midi::translate::{velocity_7_to_16, note_event_to_v2};
-use nada::midi::routing::{MidiRoute, VelocityCurve, CcMapping};
+use nada::midi::{MidiClip, NoteEvent};
 
 fn main() {
     // Create a MIDI clip
     let mut clip = MidiClip::new("melody", 0, 44100 * 4);
-    clip.add_note(0, 22050, 60, 100, 0);         // C4
-    clip.add_note(22050, 22050, 64, 90, 0);       // E4
-    clip.add_note(44100, 22050, 67, 85, 0);       // G4
-    clip.add_note(66150, 22050, 72, 95, 0);       // C5
+    clip.add_note(0, 22050, 60, 100, 0); // C4
+    clip.add_note(22050, 22050, 64, 90, 0); // E4
+    clip.add_note(44100, 22050, 67, 85, 0); // G4
+    clip.add_note(66150, 22050, 72, 95, 0); // C5
 
     println!("Clip '{}': {} notes", clip.name, clip.notes.len());
 
@@ -31,9 +31,18 @@ fn main() {
     println!("  After +4 semitones: first note = {}", clip.notes[0].note);
 
     // MIDI 1.0 → 2.0 translation
-    let note = NoteEvent { position: 0, duration: 1000, note: 60, velocity: 100, channel: 0 };
+    let note = NoteEvent {
+        position: 0,
+        duration: 1000,
+        note: 60,
+        velocity: 100,
+        channel: 0,
+    };
     let v2 = note_event_to_v2(&note);
-    println!("\nMIDI 2.0: velocity 7-bit {} → 16-bit {}", note.velocity, v2.velocity);
+    println!(
+        "\nMIDI 2.0: velocity 7-bit {} → 16-bit {}",
+        note.velocity, v2.velocity
+    );
     println!("  velocity_7_to_16(127) = {}", velocity_7_to_16(127));
 
     // Voice management
@@ -52,9 +61,18 @@ fn main() {
         velocity_curve: VelocityCurve::Soft,
         note_range: (48, 84),
     };
-    let event = NoteEvent { position: 0, duration: 1000, note: 60, velocity: 127, channel: 0 };
+    let event = NoteEvent {
+        position: 0,
+        duration: 1000,
+        note: 60,
+        velocity: 127,
+        channel: 0,
+    };
     if let Some(filtered) = route.filter_event(&event) {
-        println!("\nRouting: velocity {} → {} (Soft curve)", event.velocity, filtered.velocity);
+        println!(
+            "\nRouting: velocity {} → {} (Soft curve)",
+            event.velocity, filtered.velocity
+        );
     }
 
     // CC mapping

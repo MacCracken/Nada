@@ -11,9 +11,15 @@ struct ToneGenerator {
 }
 
 impl AudioNode for ToneGenerator {
-    fn name(&self) -> &str { "tone" }
-    fn num_inputs(&self) -> usize { 0 }
-    fn num_outputs(&self) -> usize { 1 }
+    fn name(&self) -> &str {
+        "tone"
+    }
+    fn num_inputs(&self) -> usize {
+        0
+    }
+    fn num_outputs(&self) -> usize {
+        1
+    }
     fn process(&mut self, _inputs: &[&AudioBuffer], output: &mut AudioBuffer) {
         for s in &mut output.samples {
             *s = (self.phase as f32).sin() * 0.5;
@@ -28,9 +34,15 @@ struct GainNode {
 }
 
 impl AudioNode for GainNode {
-    fn name(&self) -> &str { "gain" }
-    fn num_inputs(&self) -> usize { 1 }
-    fn num_outputs(&self) -> usize { 1 }
+    fn name(&self) -> &str {
+        "gain"
+    }
+    fn num_inputs(&self) -> usize {
+        1
+    }
+    fn num_outputs(&self) -> usize {
+        1
+    }
     fn process(&mut self, inputs: &[&AudioBuffer], output: &mut AudioBuffer) {
         if let Some(input) = inputs.first() {
             for (i, s) in output.samples.iter_mut().enumerate() {
@@ -49,13 +61,22 @@ fn main() {
     let tone_id = NodeId::next();
     let gain_id = NodeId::next();
 
-    graph.add_node(tone_id, Box::new(ToneGenerator {
-        freq: 440.0, phase: 0.0, sample_rate: sr as f64,
-    }));
+    graph.add_node(
+        tone_id,
+        Box::new(ToneGenerator {
+            freq: 440.0,
+            phase: 0.0,
+            sample_rate: sr as f64,
+        }),
+    );
     graph.add_node(gain_id, Box::new(GainNode { gain: 0.3 }));
     graph.connect(tone_id, gain_id);
 
-    println!("Graph: {} nodes, {} connections", graph.node_count(), graph.connection_count());
+    println!(
+        "Graph: {} nodes, {} connections",
+        graph.node_count(),
+        graph.connection_count()
+    );
 
     // Compile to execution plan
     let plan = graph.compile().unwrap();
@@ -69,8 +90,13 @@ fn main() {
     // Process a few buffers
     for i in 0..4 {
         if let Some(output) = processor.process() {
-            println!("Buffer {}: {} frames, peak={:.3}, rms={:.3}",
-                i, output.frames, output.peak(), output.rms());
+            println!(
+                "Buffer {}: {} frames, peak={:.3}, rms={:.3}",
+                i,
+                output.frames,
+                output.peak(),
+                output.rms()
+            );
         }
     }
 }

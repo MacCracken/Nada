@@ -16,8 +16,8 @@ use pw::spa::pod::Pod;
 use spa::param::format::{MediaSubtype, MediaType};
 use spa::param::format_utils;
 
-use crate::buffer::AudioBuffer;
 use crate::NadaError;
+use crate::buffer::AudioBuffer;
 
 use super::{AudioDevice, CaptureConfig, CaptureEvent, DeviceType, OutputConfig};
 
@@ -54,9 +54,10 @@ impl PwCapture {
     /// Start capturing audio from PipeWire.
     pub fn start(&mut self) -> Result<(), NadaError> {
         {
-            let mut running = self.running.lock().map_err(|e| {
-                NadaError::Capture(format!("lock poisoned: {e}"))
-            })?;
+            let mut running = self
+                .running
+                .lock()
+                .map_err(|e| NadaError::Capture(format!("lock poisoned: {e}")))?;
             if *running {
                 return Ok(());
             }
@@ -71,7 +72,14 @@ impl PwCapture {
         let device_id = self.config.device_id;
 
         let handle = std::thread::spawn(move || {
-            if let Err(e) = run_capture_loop(sender, event_sender, running.clone(), sample_rate, channels, device_id) {
+            if let Err(e) = run_capture_loop(
+                sender,
+                event_sender,
+                running.clone(),
+                sample_rate,
+                channels,
+                device_id,
+            ) {
                 tracing::error!("PipeWire capture error: {e}");
             }
             if let Ok(mut r) = running.lock() {
@@ -86,9 +94,10 @@ impl PwCapture {
     /// Stop capturing.
     pub fn stop(&mut self) -> Result<(), NadaError> {
         {
-            let mut running = self.running.lock().map_err(|e| {
-                NadaError::Capture(format!("lock poisoned: {e}"))
-            })?;
+            let mut running = self
+                .running
+                .lock()
+                .map_err(|e| NadaError::Capture(format!("lock poisoned: {e}")))?;
             *running = false;
         }
         // The mainloop will quit when it checks the running flag
@@ -240,11 +249,8 @@ fn run_capture_loop(
 
                 let frames = samples.len() / n_channels as usize;
                 if frames > 0
-                    && let Ok(buf) = AudioBuffer::from_interleaved(
-                        samples,
-                        n_channels,
-                        user_data.sample_rate,
-                    )
+                    && let Ok(buf) =
+                        AudioBuffer::from_interleaved(samples, n_channels, user_data.sample_rate)
                 {
                     let _ = user_data.sender.send(buf);
                 }
@@ -276,7 +282,8 @@ fn run_capture_loop(
     .0
     .into_inner();
 
-    let mut params = [Pod::from_bytes(&values).ok_or_else(|| NadaError::Capture("invalid pod".into()))?];
+    let mut params =
+        [Pod::from_bytes(&values).ok_or_else(|| NadaError::Capture("invalid pod".into()))?];
 
     stream
         .connect(
@@ -322,9 +329,10 @@ impl PwOutput {
     /// Start the output stream.
     pub fn start(&mut self) -> Result<(), NadaError> {
         {
-            let mut running = self.running.lock().map_err(|e| {
-                NadaError::Capture(format!("lock poisoned: {e}"))
-            })?;
+            let mut running = self
+                .running
+                .lock()
+                .map_err(|e| NadaError::Capture(format!("lock poisoned: {e}")))?;
             if *running {
                 return Ok(());
             }
@@ -338,7 +346,9 @@ impl PwOutput {
         let device_id = self.config.device_id;
 
         let handle = std::thread::spawn(move || {
-            if let Err(e) = run_output_loop(receiver, running.clone(), sample_rate, channels, device_id) {
+            if let Err(e) =
+                run_output_loop(receiver, running.clone(), sample_rate, channels, device_id)
+            {
                 tracing::error!("PipeWire output error: {e}");
             }
             if let Ok(mut r) = running.lock() {
@@ -353,9 +363,10 @@ impl PwOutput {
     /// Stop the output stream.
     pub fn stop(&mut self) -> Result<(), NadaError> {
         {
-            let mut running = self.running.lock().map_err(|e| {
-                NadaError::Capture(format!("lock poisoned: {e}"))
-            })?;
+            let mut running = self
+                .running
+                .lock()
+                .map_err(|e| NadaError::Capture(format!("lock poisoned: {e}")))?;
             *running = false;
         }
         if let Some(handle) = self.thread.take() {
@@ -514,7 +525,8 @@ fn run_output_loop(
     .0
     .into_inner();
 
-    let mut params = [Pod::from_bytes(&values).ok_or_else(|| NadaError::Capture("invalid pod".into()))?];
+    let mut params =
+        [Pod::from_bytes(&values).ok_or_else(|| NadaError::Capture("invalid pod".into()))?];
 
     stream
         .connect(
@@ -555,7 +567,9 @@ pub fn enumerate_devices() -> Result<Vec<AudioDevice>, NadaError> {
 
     let done_clone = done.clone();
     let loop_clone = mainloop.clone();
-    let pending = core.sync(0).map_err(|e| NadaError::Capture(e.to_string()))?;
+    let pending = core
+        .sync(0)
+        .map_err(|e| NadaError::Capture(e.to_string()))?;
 
     let _listener_core = core
         .add_listener_local()

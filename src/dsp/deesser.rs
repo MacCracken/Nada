@@ -37,9 +37,15 @@ impl Default for DeEsserParams {
 impl DeEsserParams {
     /// Validate parameters.
     pub fn validate(&self) -> Result<(), &'static str> {
-        if self.freq_hz <= 0.0 { return Err("freq_hz must be > 0.0"); }
-        if self.reduction_db < 0.0 { return Err("reduction_db must be >= 0.0"); }
-        if self.q <= 0.0 { return Err("q must be > 0.0"); }
+        if self.freq_hz <= 0.0 {
+            return Err("freq_hz must be > 0.0");
+        }
+        if self.reduction_db < 0.0 {
+            return Err("reduction_db must be >= 0.0");
+        }
+        if self.q <= 0.0 {
+            return Err("q must be > 0.0");
+        }
         Ok(())
     }
 }
@@ -141,9 +147,7 @@ mod tests {
 
     fn make_sine(freq: f32, amplitude: f32, frames: usize) -> AudioBuffer {
         let samples: Vec<f32> = (0..frames)
-            .map(|i| {
-                amplitude * (2.0 * std::f32::consts::PI * freq * i as f32 / 44100.0).sin()
-            })
+            .map(|i| amplitude * (2.0 * std::f32::consts::PI * freq * i as f32 / 44100.0).sin())
             .collect();
         AudioBuffer::from_interleaved(samples, 1, 44100).unwrap()
     }
@@ -238,9 +242,7 @@ mod tests {
         };
         let mut deesser = DeEsser::new(params, 44100, 2);
         let samples: Vec<f32> = (0..8192)
-            .map(|i| {
-                0.8 * (2.0 * std::f32::consts::PI * 6000.0 * (i / 2) as f32 / 44100.0).sin()
-            })
+            .map(|i| 0.8 * (2.0 * std::f32::consts::PI * 6000.0 * (i / 2) as f32 / 44100.0).sin())
             .collect();
         let mut buf = AudioBuffer::from_interleaved(samples, 2, 44100).unwrap();
         deesser.process(&mut buf);

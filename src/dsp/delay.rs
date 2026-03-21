@@ -32,8 +32,7 @@ impl DelayLine {
     ) -> Self {
         let max_samples = ((max_delay_ms.max(delay_ms) / 1000.0) * sample_rate as f32) as usize;
         let max_samples = max_samples.max(1);
-        let delay_samples =
-            ((delay_ms / 1000.0) * sample_rate as f32) as usize;
+        let delay_samples = ((delay_ms / 1000.0) * sample_rate as f32) as usize;
         let delay_samples = delay_samples.min(max_samples);
 
         Self {
@@ -62,8 +61,8 @@ impl DelayLine {
     /// call once per channel per frame, then advance after all channels.
     fn process_sample(&mut self, input: f32, channel: usize) -> f32 {
         let buf = &mut self.buffers[channel];
-        let read_pos = (self.write_pos + self.max_delay_samples - self.delay_samples)
-            % self.max_delay_samples;
+        let read_pos =
+            (self.write_pos + self.max_delay_samples - self.delay_samples) % self.max_delay_samples;
         let delayed = buf[read_pos];
         buf[self.write_pos] = input + delayed * self.feedback;
         input * (1.0 - self.mix) + delayed * self.mix
@@ -74,8 +73,7 @@ impl DelayLine {
         let buf = &self.buffers[channel];
         let delay_int = delay_frac as usize;
         let frac = delay_frac - delay_int as f32;
-        let pos0 =
-            (self.write_pos + self.max_delay_samples - delay_int) % self.max_delay_samples;
+        let pos0 = (self.write_pos + self.max_delay_samples - delay_int) % self.max_delay_samples;
         let pos1 =
             (self.write_pos + self.max_delay_samples - delay_int - 1) % self.max_delay_samples;
         buf[pos0] * (1.0 - frac) + buf[pos1] * frac
@@ -171,12 +169,12 @@ impl ModulatedDelay {
                 let idx = frame * ch + c;
                 let input = buf.samples[idx];
                 let delayed = self.delay.read_interpolated(c, delay_frac);
-                self.delay.buffers[c][self.delay.write_pos] = input + delayed * self.params.feedback;
+                self.delay.buffers[c][self.delay.write_pos] =
+                    input + delayed * self.params.feedback;
                 buf.samples[idx] = input * (1.0 - self.params.mix) + delayed * self.params.mix;
             }
 
-            self.delay.write_pos =
-                (self.delay.write_pos + 1) % self.delay.max_delay_samples;
+            self.delay.write_pos = (self.delay.write_pos + 1) % self.delay.max_delay_samples;
             self.lfo_phase = (self.lfo_phase + phase_inc) % 1.0;
         }
     }
@@ -214,7 +212,10 @@ mod tests {
         delay.process(&mut buf);
 
         // The delayed impulse should appear at frame 1 (wet only, mix=1.0)
-        assert!(buf.samples[0].abs() < f32::EPSILON, "frame 0 should be dry=0");
+        assert!(
+            buf.samples[0].abs() < f32::EPSILON,
+            "frame 0 should be dry=0"
+        );
         assert!(
             (buf.samples[1] - 1.0).abs() < f32::EPSILON,
             "frame 1 should have delayed impulse"

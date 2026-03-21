@@ -365,7 +365,10 @@ mod tests {
             1,
         );
         filt.process(&mut buf);
-        assert!(buf.rms() > original_rms * 1.5, "Low shelf should boost 200Hz");
+        assert!(
+            buf.rms() > original_rms * 1.5,
+            "Low shelf should boost 200Hz"
+        );
     }
 
     #[test]
@@ -380,7 +383,10 @@ mod tests {
             1,
         );
         filt.process(&mut buf);
-        assert!(buf.rms() > original_rms * 1.5, "High shelf should boost 8kHz");
+        assert!(
+            buf.rms() > original_rms * 1.5,
+            "High shelf should boost 8kHz"
+        );
     }
 
     #[test]

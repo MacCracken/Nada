@@ -22,7 +22,11 @@ pub struct NadaBuffer(AudioBuffer);
 /// # Safety
 /// Caller must free the returned pointer with `nada_buffer_free`.
 #[unsafe(no_mangle)]
-pub extern "C" fn nada_buffer_silence(channels: u32, frames: usize, sample_rate: u32) -> *mut NadaBuffer {
+pub extern "C" fn nada_buffer_silence(
+    channels: u32,
+    frames: usize,
+    sample_rate: u32,
+) -> *mut NadaBuffer {
     let buf = AudioBuffer::silence(channels, frames, sample_rate);
     Box::into_raw(Box::new(NadaBuffer(buf)))
 }
@@ -224,9 +228,8 @@ mod tests {
     #[test]
     fn ffi_from_interleaved() {
         let samples = vec![0.5f32, -0.5, 0.3, -0.3];
-        let buf = unsafe {
-            nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 2, 44100)
-        };
+        let buf =
+            unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 2, 44100) };
         assert!(!buf.is_null());
         unsafe {
             assert_eq!(nada_buffer_frames(buf), 2);
@@ -271,9 +274,8 @@ mod tests {
     #[test]
     fn ffi_rms() {
         let samples = vec![0.5f32; 100];
-        let buf = unsafe {
-            nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100)
-        };
+        let buf =
+            unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         assert!(!buf.is_null());
         unsafe {
             let rms = nada_buffer_rms(buf);
@@ -286,9 +288,8 @@ mod tests {
     #[test]
     fn ffi_clamp() {
         let samples = vec![2.0f32, -2.0, 0.5];
-        let buf = unsafe {
-            nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100)
-        };
+        let buf =
+            unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         unsafe {
             nada_buffer_clamp(buf);
             assert!((nada_buffer_peak(buf) - 1.0).abs() < f32::EPSILON);
@@ -300,9 +301,8 @@ mod tests {
     #[test]
     fn ffi_noise_gate() {
         let samples = vec![0.01f32, 0.5, 0.001, 0.8];
-        let buf = unsafe {
-            nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100)
-        };
+        let buf =
+            unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         unsafe {
             nada_buffer_noise_gate(buf, 0.1);
             nada_buffer_noise_gate(std::ptr::null_mut(), 0.1); // null safety
@@ -313,9 +313,8 @@ mod tests {
     #[test]
     fn ffi_hard_limiter() {
         let samples = vec![2.0f32, -2.0, 0.5];
-        let buf = unsafe {
-            nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100)
-        };
+        let buf =
+            unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         unsafe {
             nada_buffer_hard_limiter(buf, 1.0);
             assert!((nada_buffer_peak(buf) - 1.0).abs() < f32::EPSILON);
@@ -327,9 +326,8 @@ mod tests {
     #[test]
     fn ffi_samples_ptr() {
         let samples = vec![0.5f32, -0.5];
-        let buf = unsafe {
-            nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100)
-        };
+        let buf =
+            unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         unsafe {
             let ptr = nada_buffer_samples(buf);
             assert!(!ptr.is_null());

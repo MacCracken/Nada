@@ -28,23 +28,17 @@ fn bench_clamp(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
     // Push some samples over 1.0
     buf.apply_gain(1.5);
-    c.bench_function("simd_clamp_stereo_1s", |b| {
-        b.iter(|| buf.clamp())
-    });
+    c.bench_function("simd_clamp_stereo_1s", |b| b.iter(|| buf.clamp()));
 }
 
 fn bench_peak(c: &mut Criterion) {
     let buf = make_stereo_1s();
-    c.bench_function("simd_peak_stereo_1s", |b| {
-        b.iter(|| buf.peak())
-    });
+    c.bench_function("simd_peak_stereo_1s", |b| b.iter(|| buf.peak()));
 }
 
 fn bench_rms(c: &mut Criterion) {
     let buf = make_stereo_1s();
-    c.bench_function("simd_rms_stereo_1s", |b| {
-        b.iter(|| buf.rms())
-    });
+    c.bench_function("simd_rms_stereo_1s", |b| b.iter(|| buf.rms()));
 }
 
 fn bench_mix_2(c: &mut Criterion) {
@@ -70,7 +64,9 @@ fn bench_i16_to_f32(c: &mut Criterion) {
 }
 
 fn bench_f32_to_i16(c: &mut Criterion) {
-    let f32_data: Vec<f32> = (0..88200).map(|i| (i as f32 / 88200.0) * 2.0 - 1.0).collect();
+    let f32_data: Vec<f32> = (0..88200)
+        .map(|i| (i as f32 / 88200.0) * 2.0 - 1.0)
+        .collect();
     c.bench_function("simd_f32_to_i16_stereo_1s", |b| {
         b.iter(|| convert::f32_to_i16(&f32_data))
     });

@@ -4,8 +4,8 @@
 //! `AtomicU32` (f32 bit patterns), and the UI thread reads them without
 //! mutexes or blocking.
 
-use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 
 /// A single stereo peak level stored as two atomic u32 (f32 bit patterns).
 ///

@@ -87,8 +87,7 @@ pub fn measure_r128(buf: &AudioBuffer) -> R128Loudness {
     }
 
     // Ungated loudness (above absolute gate)
-    let ungated_mean: f32 =
-        above_abs_gate.iter().sum::<f32>() / above_abs_gate.len() as f32;
+    let ungated_mean: f32 = above_abs_gate.iter().sum::<f32>() / above_abs_gate.len() as f32;
 
     // Step 4: Relative gate at ungated - 10 LU
     let relative_threshold = ungated_mean - 10.0;
@@ -134,12 +133,8 @@ fn apply_k_weighting(buf: &AudioBuffer) -> AudioBuffer {
     let ch = buf.channels;
 
     // Stage 1: High shelf at ~1681 Hz, +4 dB (pre-emphasis for head acoustics)
-    let shelf_coeffs = BiquadCoeffs::design(
-        FilterType::HighShelf { gain_db: 4.0 },
-        1681.0,
-        0.707,
-        sr,
-    );
+    let shelf_coeffs =
+        BiquadCoeffs::design(FilterType::HighShelf { gain_db: 4.0 }, 1681.0, 0.707, sr);
 
     // Stage 2: High pass at ~38 Hz (remove DC and sub-bass)
     let hp_coeffs = BiquadCoeffs::design(FilterType::HighPass, 38.0, 0.5, sr);
@@ -205,9 +200,7 @@ mod tests {
         let sr = 48000u32;
         let frames = sr as usize * 2; // 2 seconds
         let samples: Vec<f32> = (0..frames * 2)
-            .map(|i| {
-                0.5 * (2.0 * std::f32::consts::PI * 1000.0 * (i / 2) as f32 / sr as f32).sin()
-            })
+            .map(|i| 0.5 * (2.0 * std::f32::consts::PI * 1000.0 * (i / 2) as f32 / sr as f32).sin())
             .collect();
         let buf = AudioBuffer::from_interleaved(samples, 2, sr).unwrap();
         let r = measure_r128(&buf);

@@ -201,10 +201,7 @@ mod tests {
         for (a, b) in original.iter().zip(back.iter()) {
             // Allow some precision loss due to f32 intermediate
             let tolerance = 256;
-            assert!(
-                (*a as i64 - *b as i64).abs() <= tolerance,
-                "{a} != {b}"
-            );
+            assert!((*a as i64 - *b as i64).abs() <= tolerance, "{a} != {b}");
         }
     }
 
