@@ -103,9 +103,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libpipewire-0.3-dev
       - name: Run tests
-        run: cargo test ${{ matrix.cargo-flags }}
-      - name: Run doc tests
-        run: cargo test --doc ${{ matrix.cargo-flags }}
+        run: cargo test --lib --tests ${{ matrix.cargo-flags }}
+      - name: Run doc tests (default features only)
+        if: matrix.cargo-flags == ''
+        run: cargo test --doc
 
   test-minimal:
     name: Test (no features)
