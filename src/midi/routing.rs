@@ -42,14 +42,27 @@ impl VelocityCurve {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MidiRoute {
     /// If set, only events on this MIDI channel (0–15) pass through.
-    pub channel_filter: Option<u8>,
+    channel_filter: Option<u8>,
     /// Velocity transformation.
-    pub velocity_curve: VelocityCurve,
+    velocity_curve: VelocityCurve,
     /// Inclusive note range (min, max). Notes outside are filtered out.
-    pub note_range: (u8, u8),
+    note_range: (u8, u8),
 }
 
 impl MidiRoute {
+    /// Create a new route with the given settings.
+    ///
+    /// `note_range` is clamped so that min <= max and both are in 0–127.
+    pub fn new(channel_filter: Option<u8>, velocity_curve: VelocityCurve, note_range: (u8, u8)) -> Self {
+        let min = note_range.0.min(127);
+        let max = note_range.1.min(127).max(min);
+        Self {
+            channel_filter: channel_filter.map(|ch| ch.min(15)),
+            velocity_curve,
+            note_range: (min, max),
+        }
+    }
+
     /// Create a route that passes all events unmodified.
     pub fn passthrough() -> Self {
         Self {
@@ -57,6 +70,30 @@ impl MidiRoute {
             velocity_curve: VelocityCurve::Linear,
             note_range: (0, 127),
         }
+    }
+
+    /// Channel filter (None = all channels).
+    pub fn channel_filter(&self) -> Option<u8> { self.channel_filter }
+    /// Velocity transformation curve.
+    pub fn velocity_curve(&self) -> &VelocityCurve { &self.velocity_curve }
+    /// Inclusive note range (min, max).
+    pub fn note_range(&self) -> (u8, u8) { self.note_range }
+
+    /// Set the channel filter. Channel is clamped to 0–15.
+    pub fn set_channel_filter(&mut self, channel: Option<u8>) {
+        self.channel_filter = channel.map(|ch| ch.min(15));
+    }
+
+    /// Set the velocity curve.
+    pub fn set_velocity_curve(&mut self, curve: VelocityCurve) {
+        self.velocity_curve = curve;
+    }
+
+    /// Set the note range. Values are clamped to 0–127 and min <= max.
+    pub fn set_note_range(&mut self, min: u8, max: u8) {
+        let min = min.min(127);
+        let max = max.min(127).max(min);
+        self.note_range = (min, max);
     }
 
     /// Filter and transform a NoteEvent. Returns None if the event is rejected.
@@ -184,10 +221,7 @@ mod tests {
 
     #[test]
     fn route_channel_filter() {
-        let route = MidiRoute {
-            channel_filter: Some(5),
-            ..MidiRoute::passthrough()
-        };
+        let route = MidiRoute::new(Some(5), VelocityCurve::Linear, (0, 127));
         let event_ch5 = NoteEvent {
             position: 0,
             duration: 100,
@@ -206,10 +240,7 @@ mod tests {
 
     #[test]
     fn route_note_range() {
-        let route = MidiRoute {
-            note_range: (36, 96),
-            ..MidiRoute::passthrough()
-        };
+        let route = MidiRoute::new(None, VelocityCurve::Linear, (36, 96));
         let event_in = NoteEvent {
             position: 0,
             duration: 100,
@@ -233,10 +264,7 @@ mod tests {
 
     #[test]
     fn route_velocity_curve_applied() {
-        let route = MidiRoute {
-            velocity_curve: VelocityCurve::Fixed(80),
-            ..MidiRoute::passthrough()
-        };
+        let route = MidiRoute::new(None, VelocityCurve::Fixed(80), (0, 127));
         let event = NoteEvent {
             position: 0,
             duration: 100,

@@ -56,13 +56,13 @@ let mut mixed = mix(&[&vocals, &drums])?;
 let mut comp = Compressor::new(CompressorParams {
     threshold_db: -18.0, ratio: 4.0, attack_ms: 10.0, release_ms: 100.0,
     makeup_gain_db: 3.0, knee_db: 6.0,
-}, 44100);
+}, 44100)?;
 comp.process(&mut mixed);
 dsp::normalize(&mut mixed, 0.95);
 dsp::noise_gate(&mut mixed, 0.01);
 
 // Analyze
-let spectrum = analysis::spectrum_fft(&mixed, 4096);
+let spectrum = analysis::spectrum_fft(&mixed, 4096).unwrap();
 let loudness = analysis::loudness_lufs(&mixed);
 println!("Peak: {:.2}, LUFS: {:.1}", mixed.peak(), loudness);
 
@@ -148,7 +148,7 @@ let amp = dsp::db_to_amplitude(-6.0);    // ~0.501
 ### Analysis
 
 ```rust
-let spectrum = analysis::spectrum_fft(&buf, 4096);
+let spectrum = analysis::spectrum_fft(&buf, 4096).unwrap();
 if let Some(freq) = spectrum.dominant_frequency() {
     println!("Dominant: {:.0} Hz", freq);
 }

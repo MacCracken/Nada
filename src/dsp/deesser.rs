@@ -63,8 +63,13 @@ pub struct DeEsser {
 }
 
 impl DeEsser {
-    /// Create a new de-esser.
-    pub fn new(params: DeEsserParams, sample_rate: u32, channels: u32) -> Self {
+    /// Create a new de-esser. Returns an error if parameters are invalid.
+    pub fn new(params: DeEsserParams, sample_rate: u32, channels: u32) -> crate::Result<Self> {
+        params.validate().map_err(|reason| crate::NadaError::InvalidParameter {
+            name: "DeEsserParams".into(),
+            value: String::new(),
+            reason: reason.into(),
+        })?;
         let detector = BiquadFilter::new(
             FilterType::BandPass,
             params.freq_hz,
@@ -72,13 +77,13 @@ impl DeEsser {
             sample_rate,
             channels,
         );
-        Self {
+        Ok(Self {
             params,
             detector,
             sidechain: Vec::new(),
             sample_rate,
             channels,
-        }
+        })
     }
 
     /// Process an audio buffer in-place.
@@ -115,6 +120,9 @@ impl DeEsser {
                 for c in 0..ch {
                     let idx = frame * ch + c;
                     buf.samples[idx] *= reduction;
+                    if !buf.samples[idx].is_finite() {
+                        buf.samples[idx] = 0.0;
+                    }
                 }
             }
         }
@@ -160,7 +168,7 @@ mod tests {
             reduction_db: 12.0,
             q: 2.0,
         };
-        let mut deesser = DeEsser::new(params, 44100, 1);
+        let mut deesser = DeEsser::new(params, 44100, 1).unwrap();
         let mut buf = make_sine(200.0, 0.8, 4096);
         let original_rms = buf.rms();
         deesser.process(&mut buf);
@@ -179,7 +187,7 @@ mod tests {
             reduction_db: 12.0,
             q: 1.0,
         };
-        let mut deesser = DeEsser::new(params, 44100, 1);
+        let mut deesser = DeEsser::new(params, 44100, 1).unwrap();
         let mut buf = make_sine(6000.0, 0.8, 4096);
         let original_rms = buf.rms();
         deesser.process(&mut buf);
@@ -197,7 +205,7 @@ mod tests {
             reduction_db: 12.0,
             q: 2.0,
         };
-        let mut deesser = DeEsser::new(params, 44100, 1);
+        let mut deesser = DeEsser::new(params, 44100, 1).unwrap();
         let mut buf = make_sine(6000.0, 0.1, 4096);
         let original_rms = buf.rms();
         deesser.process(&mut buf);
@@ -210,7 +218,7 @@ mod tests {
 
     #[test]
     fn reset_clears_state() {
-        let mut deesser = DeEsser::new(DeEsserParams::default(), 44100, 1);
+        let mut deesser = DeEsser::new(DeEsserParams::default(), 44100, 1).unwrap();
         let mut buf = make_sine(6000.0, 0.8, 256);
         deesser.process(&mut buf);
         deesser.reset();
@@ -220,7 +228,7 @@ mod tests {
 
     #[test]
     fn set_params_updates_detector() {
-        let mut deesser = DeEsser::new(DeEsserParams::default(), 44100, 1);
+        let mut deesser = DeEsser::new(DeEsserParams::default(), 44100, 1).unwrap();
         deesser.set_params(DeEsserParams {
             freq_hz: 8000.0,
             threshold_db: -20.0,
@@ -240,7 +248,7 @@ mod tests {
             reduction_db: 12.0,
             q: 1.0,
         };
-        let mut deesser = DeEsser::new(params, 44100, 2);
+        let mut deesser = DeEsser::new(params, 44100, 2).unwrap();
         let samples: Vec<f32> = (0..8192)
             .map(|i| 0.8 * (2.0 * std::f32::consts::PI * 6000.0 * (i / 2) as f32 / 44100.0).sin())
             .collect();
@@ -251,7 +259,7 @@ mod tests {
 
     #[test]
     fn sidechain_buffer_reused() {
-        let mut deesser = DeEsser::new(DeEsserParams::default(), 44100, 1);
+        let mut deesser = DeEsser::new(DeEsserParams::default(), 44100, 1).unwrap();
         let mut buf = make_sine(6000.0, 0.8, 1024);
         deesser.process(&mut buf);
         // After process, sidechain buffer should be populated (reusable)

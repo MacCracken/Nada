@@ -87,6 +87,12 @@ pub fn db_to_amplitude(db: f32) -> f32 {
     10.0f32.powf(db / 20.0)
 }
 
+/// Sanitize a sample: replace NaN or infinity with 0.0.
+#[inline]
+pub fn sanitize_sample(s: f32) -> f32 {
+    if s.is_finite() { s } else { 0.0 }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

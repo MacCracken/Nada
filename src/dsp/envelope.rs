@@ -19,6 +19,25 @@ pub struct AdsrParams {
     pub release: f32,
 }
 
+impl AdsrParams {
+    /// Validate parameters. Returns an error description if invalid.
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.attack < 0.0 {
+            return Err("attack must be >= 0.0");
+        }
+        if self.decay < 0.0 {
+            return Err("decay must be >= 0.0");
+        }
+        if !(0.0..=1.0).contains(&self.sustain) {
+            return Err("sustain must be 0.0–1.0");
+        }
+        if self.release < 0.0 {
+            return Err("release must be >= 0.0");
+        }
+        Ok(())
+    }
+}
+
 impl Default for AdsrParams {
     fn default() -> Self {
         Self {

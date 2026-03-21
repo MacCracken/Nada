@@ -4,68 +4,69 @@
 
 ---
 
-## v0.21.3 (current) — Per-Channel Analysis, Spectrum Enrichment, LevelMeter
+## v0.21.3 — Per-Channel Analysis, Spectrum Enrichment, LevelMeter
 
 See CHANGELOG.md for full release notes.
 
 ---
 
-## v0.21.3 — Hardening, Safety & API Freeze
+## v0.21.4 (current) — Hardening, Safety & API Freeze
 
 Everything needed to make the public API production-safe and v1.0-ready.
 
 ### Panic & safety elimination
 
-- [ ] **FFT panic removal**: Replace `assert!(n.is_power_of_two())` in `fft_in_place()` with graceful `Result` return
-- [ ] **Unchecked indexing audit**: Add bounds guards in `interleaved_to_planar()`, `stft()`, `resample_linear()`, `dynamics` loops (~8 sites)
-- [ ] **`// SAFETY:` comments on all 106 unsafe blocks**: x86.rs (SSE2/AVX2), aarch64.rs (NEON), ffi.rs, meter/mod.rs — document memory layout, alignment, feature detection invariants
-- [ ] **Analysis error propagation**: Change `spectrum_fft()`, `stft()`, `measure_r128()` from silent-default-on-failure to `Result<T, NadaError>` so callers can distinguish silence from error
+- [x] **FFT panic removal**: Replace `assert!(n.is_power_of_two())` in `fft_in_place()` with graceful `Result` return
+- [x] **Unchecked indexing audit**: Add bounds guards in `interleaved_to_planar()`, `stft()`, `resample_linear()`, `dynamics` loops (~8 sites)
+- [x] **`// SAFETY:` comments on all unsafe blocks**: x86.rs (SSE2/AVX2), aarch64.rs (NEON), ffi.rs, meter/mod.rs — document memory layout, alignment, feature detection invariants
+- [x] **Analysis error propagation**: Change `spectrum_fft()`, `stft()`, `measure_r128()` from silent-default-on-failure to `Result<T, NadaError>` so callers can distinguish silence from error
 
 ### API encapsulation
 
-- [ ] **AudioBuffer**: Make `samples`, `channels`, `sample_rate`, `frames` private; accessor methods already exist
-- [ ] **Spectrum / Chromagram**: Private `magnitudes`, `chroma`; add read-only accessors
-- [ ] **Voice / VoiceManager**: Private state fields; mutation only through `note_on()`/`note_off()`
-- [ ] **MidiRoute**: Private fields; validated setters
-- [ ] **GraphProcessor**: Private `current_plan`, `pending_plan`, `node_outputs`; mutation only through `swap_handle()`
+- [x] **AudioBuffer**: Make `samples`, `channels`, `sample_rate`, `frames` private; accessor methods already exist
+- [x] **Spectrum / Chromagram**: Private `magnitudes`, `chroma`; add read-only accessors
+- [x] **Voice / VoiceManager**: Private state fields; mutation only through `note_on()`/`note_off()`
+- [x] **MidiRoute**: Private fields; validated setters
+- [x] **GraphProcessor**: Private `current_plan`, `pending_plan`, `node_outputs`; mutation only through `swap_handle()`
 
 ### Format conversion
 
-- [ ] **24-bit audio (i24 ↔ f32)**: Packed 3-byte and i32-padded variants — the standard pro recording format
-- [ ] **f64 ↔ f32**: Double-precision for mastering buses and scientific analysis
-- [ ] **u8 ↔ f32**: Unsigned 8-bit PCM (WAV 8-bit, legacy formats). Center at 128, range 0–255
-- [ ] Add `I24`, `F64`, `U8` to `SampleFormat` enum
-- [ ] **Dithering (TPDF + noise-shaped)**: Required for any bit-depth reduction (f32→i16, i24→i16). TPDF for flat noise, noise-shaped for perceptual weighting
+- [x] **24-bit audio (i24 ↔ f32)**: Packed 3-byte and i32-padded variants — the standard pro recording format
+- [x] **f64 ↔ f32**: Double-precision for mastering buses and scientific analysis
+- [x] **u8 ↔ f32**: Unsigned 8-bit PCM (WAV 8-bit, legacy formats). Center at 128, range 0–255
+- [x] Add `I24`, `F64`, `U8` to `SampleFormat` enum
+- [x] **Dithering (TPDF + noise-shaped)**: Required for any bit-depth reduction (f32→i16, i24→i16). TPDF for flat noise, noise-shaped for perceptual weighting
 
 ### Parameter validation
 
-- [ ] **Remaining validate() methods**: `AdsrParams`, `ModulatedDelayParams`, `Oscillator`, `Lfo` — all constructors enforce valid ranges
-- [ ] **Existing validate() tightening**: `CompressorParams`, `ReverbParams`, `LimiterParams`, `DeEsserParams` — call `validate()` in constructors, not just expose it
-- [ ] **Sample rate ceiling**: Raise to 768kHz, guard integer overflow in frame/sample calculations
+- [x] **Remaining validate() methods**: `AdsrParams`, `ModulatedDelayParams`, `Oscillator`, `Lfo` — all constructors enforce valid ranges
+- [x] **Existing validate() tightening**: `CompressorParams`, `ReverbParams`, `LimiterParams`, `DeEsserParams` — call `validate()` in constructors, not just expose it
+- [x] **Sample rate ceiling**: Raise to 768kHz, guard integer overflow in frame/sample calculations
 
 ### Memory & allocation
 
-- [ ] **DeEsser sidechain pre-allocation**: Reusable buffer in struct instead of `buf.clone()` per call
-- [ ] **Graph processor Vec-indexed outputs**: Replace `HashMap<NodeId, AudioBuffer>` with `Vec<AudioBuffer>`
-- [ ] **Graph input gather pre-allocation**: Pre-allocate input Vec per node
-- [ ] **Buffer pool**: Reusable `AudioBuffer` arena — effects borrow instead of allocating
-- [ ] **Zero-copy buffer views**: `AudioBufferRef<'a>` for read-only DSP (analysis, metering)
-- [ ] **STFT window caching**: Pre-compute Hann window once, reuse across calls
+- [x] **DeEsser sidechain pre-allocation**: Reusable buffer in struct instead of `buf.clone()` per call
+- [x] **Graph processor Vec-indexed outputs**: Replace `HashMap<NodeId, AudioBuffer>` with `Vec<Option<AudioBuffer>>`
+- [x] **Graph input gather pre-allocation**: Pre-allocate input Vec per node
+- [x] **Buffer pool**: Reusable `AudioBuffer` arena — effects borrow instead of allocating
+- [x] **Zero-copy buffer views**: `AudioBufferRef<'a>` for read-only DSP (analysis, metering)
+- [x] **STFT window caching**: `StftProcessor` struct pre-computes Hann window once, reuse across calls
 
 ### Buffer utilities
 
-- [ ] **Crossfade**: Linear and equal-power crossfade between two buffers — needed by jalwa (track transitions), aethersafta (stream switching), shruti (clip editing)
-- [ ] **Fade in / fade out**: Linear and exponential ramp applied to buffer head/tail
-- [ ] **Target loudness normalization**: Normalize to a target LUFS (e.g. -14 LUFS for streaming). Combines `measure_r128()` + gain application. jalwa and tarang need this for Spotify/YouTube/Apple compliance
+- [x] **Crossfade**: Linear and equal-power crossfade between two buffers — needed by jalwa (track transitions), aethersafta (stream switching), shruti (clip editing)
+- [x] **Fade in / fade out**: Linear and exponential ramp applied to buffer head/tail
+- [x] **Target loudness normalization**: Normalize to a target LUFS (e.g. -14 LUFS for streaming). Combines `measure_r128()` + gain application. jalwa and tarang need this for Spotify/YouTube/Apple compliance
+
 ### Trait derives
 
-- [ ] **Debug + Clone on all public types**: `GraphicEq` is missing `Debug` and `Clone` (wraps `ParametricEq` which holds internal filter state). All public types should derive `Debug` + `Clone` for consumer ergonomics
+- [x] **Debug + Clone on all public types**: `GraphicEq` now derives `Debug` and implements `Clone`
 
 ### Robustness
 
-- [ ] **NaN propagation audit**: All DSP effects handle NaN input → 0.0; add `debug_assert!(is_finite())` in test builds
-- [ ] **Reverb dead field**: Remove unused `_sample_rate` from Reverb struct
-- [ ] Audit `tracing` — instrument key functions or remove
+- [x] **NaN propagation audit**: All DSP effects handle NaN input → 0.0; `sanitize_sample()` helper added
+- [x] **Reverb dead field**: Remove unused `_sample_rate` from Reverb struct (already done)
+- [x] Audit `tracing` — minimal selective use retained
 
 ---
 

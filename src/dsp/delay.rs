@@ -52,6 +52,9 @@ impl DelayLine {
             for c in 0..ch {
                 let idx = frame * ch + c;
                 buf.samples[idx] = self.process_sample(buf.samples[idx], c);
+                if !buf.samples[idx].is_finite() {
+                    buf.samples[idx] = 0.0;
+                }
             }
             self.write_pos = (self.write_pos + 1) % self.max_delay_samples;
         }
@@ -122,6 +125,28 @@ impl Default for ModulatedDelayParams {
     }
 }
 
+impl ModulatedDelayParams {
+    /// Validate parameters. Returns an error description if invalid.
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.base_delay_ms < 0.0 {
+            return Err("base_delay_ms must be >= 0.0");
+        }
+        if self.depth_ms < 0.0 {
+            return Err("depth_ms must be >= 0.0");
+        }
+        if self.rate_hz < 0.0 {
+            return Err("rate_hz must be >= 0.0");
+        }
+        if !(0.0..=0.99).contains(&self.feedback) {
+            return Err("feedback must be 0.0–0.99");
+        }
+        if !(0.0..=1.0).contains(&self.mix) {
+            return Err("mix must be 0.0–1.0");
+        }
+        Ok(())
+    }
+}
+
 /// A modulated delay using a sine LFO — produces chorus or flanger effects.
 ///
 /// - **Chorus**: base_delay ~7ms, depth ~3ms, rate ~0.5Hz
@@ -172,6 +197,9 @@ impl ModulatedDelay {
                 self.delay.buffers[c][self.delay.write_pos] =
                     input + delayed * self.params.feedback;
                 buf.samples[idx] = input * (1.0 - self.params.mix) + delayed * self.params.mix;
+                if !buf.samples[idx].is_finite() {
+                    buf.samples[idx] = 0.0;
+                }
             }
 
             self.delay.write_pos = (self.delay.write_pos + 1) % self.delay.max_delay_samples;

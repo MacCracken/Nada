@@ -88,6 +88,7 @@ pub unsafe extern "C" fn nada_buffer_channels(ptr: *const NadaBuffer) -> u32 {
     if ptr.is_null() {
         return 0;
     }
+    // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
     unsafe { (*ptr).0.channels }
 }
 
@@ -100,6 +101,7 @@ pub unsafe extern "C" fn nada_buffer_sample_rate(ptr: *const NadaBuffer) -> u32 
     if ptr.is_null() {
         return 0;
     }
+    // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
     unsafe { (*ptr).0.sample_rate }
 }
 
@@ -112,6 +114,7 @@ pub unsafe extern "C" fn nada_buffer_peak(ptr: *const NadaBuffer) -> f32 {
     if ptr.is_null() {
         return 0.0;
     }
+    // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
     unsafe { (*ptr).0.peak() }
 }
 
@@ -124,6 +127,7 @@ pub unsafe extern "C" fn nada_buffer_rms(ptr: *const NadaBuffer) -> f32 {
     if ptr.is_null() {
         return 0.0;
     }
+    // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
     unsafe { (*ptr).0.rms() }
 }
 
@@ -134,6 +138,7 @@ pub unsafe extern "C" fn nada_buffer_rms(ptr: *const NadaBuffer) -> f32 {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn nada_buffer_apply_gain(ptr: *mut NadaBuffer, gain: f32) {
     if !ptr.is_null() {
+        // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
         unsafe { (*ptr).0.apply_gain(gain) };
     }
 }
@@ -145,6 +150,7 @@ pub unsafe extern "C" fn nada_buffer_apply_gain(ptr: *mut NadaBuffer, gain: f32)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn nada_buffer_clamp(ptr: *mut NadaBuffer) {
     if !ptr.is_null() {
+        // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
         unsafe { (*ptr).0.clamp() };
     }
 }
@@ -157,6 +163,7 @@ pub unsafe extern "C" fn nada_buffer_clamp(ptr: *mut NadaBuffer) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn nada_buffer_noise_gate(ptr: *mut NadaBuffer, threshold: f32) {
     if !ptr.is_null() {
+        // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
         crate::dsp::noise_gate(unsafe { &mut (*ptr).0 }, threshold);
     }
 }
@@ -169,6 +176,7 @@ pub unsafe extern "C" fn nada_buffer_noise_gate(ptr: *mut NadaBuffer, threshold:
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn nada_buffer_hard_limiter(ptr: *mut NadaBuffer, ceiling: f32) {
     if !ptr.is_null() {
+        // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
         crate::dsp::hard_limiter(unsafe { &mut (*ptr).0 }, ceiling);
     }
 }
@@ -183,6 +191,7 @@ pub unsafe extern "C" fn nada_buffer_samples(ptr: *const NadaBuffer) -> *const f
     if ptr.is_null() {
         return std::ptr::null();
     }
+    // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
     unsafe { (*ptr).0.samples.as_ptr() }
 }
 
@@ -195,6 +204,7 @@ pub unsafe extern "C" fn nada_buffer_total_samples(ptr: *const NadaBuffer) -> us
     if ptr.is_null() {
         return 0;
     }
+    // SAFETY: Caller guarantees ptr is non-null and was allocated by this library.
     unsafe { (*ptr).0.total_samples() }
 }
 
@@ -218,6 +228,7 @@ mod tests {
     fn ffi_silence_and_free() {
         let buf = nada_buffer_silence(2, 1024, 48000);
         assert!(!buf.is_null());
+        // SAFETY: buf was just created by nada_buffer_silence and is non-null.
         unsafe {
             assert_eq!(nada_buffer_frames(buf), 1024);
             assert_eq!(nada_buffer_channels(buf), 2);
@@ -230,9 +241,11 @@ mod tests {
     #[test]
     fn ffi_from_interleaved() {
         let samples = [0.5f32, -0.5, 0.3, -0.3];
+        // SAFETY: samples.as_ptr() points to samples.len() valid f32 values.
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 2, 44100) };
         assert!(!buf.is_null());
+        // SAFETY: buf was just created above and is non-null.
         unsafe {
             assert_eq!(nada_buffer_frames(buf), 2);
             assert!(nada_buffer_peak(buf) > 0.4);
@@ -242,6 +255,7 @@ mod tests {
 
     #[test]
     fn ffi_null_safety() {
+        // SAFETY: Testing null-pointer handling; all FFI functions are null-safe.
         unsafe {
             assert_eq!(nada_buffer_frames(std::ptr::null()), 0);
             assert_eq!(nada_buffer_channels(std::ptr::null()), 0);
@@ -255,6 +269,7 @@ mod tests {
     fn ffi_apply_gain() {
         let buf = nada_buffer_silence(1, 4, 44100);
         // Write some data
+        // SAFETY: Pointers created by this library's FFI constructors with valid data.
         unsafe {
             let samples = [0.5f32, -0.5, 0.25, -0.25];
             let buf2 = nada_buffer_from_interleaved(samples.as_ptr(), 4, 1, 44100);
@@ -267,6 +282,7 @@ mod tests {
 
     #[test]
     fn ffi_invalid_params_return_null() {
+        // SAFETY: Testing invalid parameter handling; functions are designed to return null.
         unsafe {
             assert!(nada_buffer_from_interleaved(std::ptr::null(), 0, 2, 44100).is_null());
             assert!(nada_buffer_from_interleaved(std::ptr::null(), 10, 0, 44100).is_null());
@@ -276,9 +292,11 @@ mod tests {
     #[test]
     fn ffi_rms() {
         let samples = vec![0.5f32; 100];
+        // SAFETY: samples.as_ptr() points to samples.len() valid f32 values.
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         assert!(!buf.is_null());
+        // SAFETY: buf was just created above and is non-null.
         unsafe {
             let rms = nada_buffer_rms(buf);
             assert!((rms - 0.5).abs() < 0.01);
@@ -290,8 +308,10 @@ mod tests {
     #[test]
     fn ffi_clamp() {
         let samples = [2.0f32, -2.0, 0.5];
+        // SAFETY: samples.as_ptr() points to samples.len() valid f32 values.
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
+        // SAFETY: buf was just created above and is non-null.
         unsafe {
             nada_buffer_clamp(buf);
             assert!((nada_buffer_peak(buf) - 1.0).abs() < f32::EPSILON);
@@ -304,8 +324,10 @@ mod tests {
     #[test]
     fn ffi_noise_gate() {
         let samples = [0.01f32, 0.5, 0.001, 0.8];
+        // SAFETY: samples.as_ptr() points to samples.len() valid f32 values.
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
+        // SAFETY: buf was just created above and is non-null.
         unsafe {
             nada_buffer_noise_gate(buf, 0.1);
             nada_buffer_noise_gate(std::ptr::null_mut(), 0.1); // null safety
@@ -317,8 +339,10 @@ mod tests {
     #[test]
     fn ffi_hard_limiter() {
         let samples = [2.0f32, -2.0, 0.5];
+        // SAFETY: samples.as_ptr() points to samples.len() valid f32 values.
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
+        // SAFETY: buf was just created above and is non-null.
         unsafe {
             nada_buffer_hard_limiter(buf, 1.0);
             assert!((nada_buffer_peak(buf) - 1.0).abs() < f32::EPSILON);
@@ -330,8 +354,10 @@ mod tests {
     #[test]
     fn ffi_samples_ptr() {
         let samples = [0.5f32, -0.5];
+        // SAFETY: samples.as_ptr() points to samples.len() valid f32 values.
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
+        // SAFETY: buf was just created above and is non-null.
         unsafe {
             let ptr = nada_buffer_samples(buf);
             assert!(!ptr.is_null());
@@ -344,6 +370,7 @@ mod tests {
 
     #[test]
     fn ffi_sample_rate_null() {
+        // SAFETY: Testing null-pointer handling; function is null-safe.
         unsafe {
             assert_eq!(nada_buffer_sample_rate(std::ptr::null()), 0);
         }
@@ -351,6 +378,7 @@ mod tests {
 
     #[test]
     fn ffi_apply_gain_null() {
+        // SAFETY: Testing null-pointer handling; function is null-safe.
         unsafe {
             nada_buffer_apply_gain(std::ptr::null_mut(), 2.0); // should not panic
         }
@@ -359,6 +387,7 @@ mod tests {
     #[test]
     fn ffi_zero_sample_rate_returns_null() {
         let samples = [0.5f32; 4];
+        // SAFETY: samples.as_ptr() points to valid data; testing that sample_rate=0 returns null.
         unsafe {
             let buf = nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 0);
             assert!(buf.is_null());

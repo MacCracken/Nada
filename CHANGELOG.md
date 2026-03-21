@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.4] — 2026-03-21
+
+### Changed — BREAKING
+
+#### API Encapsulation
+- `AudioBuffer` fields (`samples`, `channels`, `sample_rate`, `frames`) are now `pub(crate)` — use accessor methods `samples()`, `samples_mut()`, `channels()`, `sample_rate()`, `frames()` instead
+- `Spectrum` fields are now private — use accessor methods `magnitudes()`, `magnitude_db()`, `freq_resolution()`, `sample_rate()`, `fft_size()`, `peak_frequency()`, `peak_magnitude_db()`
+- `Chromagram.chroma` is now private — use `chroma()` accessor
+- `Voice` fields are now `pub(crate)` — use accessor methods
+- `MidiRoute` fields are now private — construct via `MidiRoute::new()`, use getters
+
+#### Analysis Error Propagation
+- `spectrum_fft()` now returns `Result<Spectrum, NadaError>` instead of default Spectrum on error
+- `spectrum_dft()` now returns `Result<Spectrum, NadaError>`
+- `compute_stft()` now returns `Result<Spectrogram, NadaError>`
+- `measure_r128()` now returns `Result<R128Loudness, NadaError>`
+- `chromagram()` now returns `Result<Chromagram, NadaError>`
+- `detect_onsets()` now returns `Result<OnsetResult, NadaError>`
+
+#### Constructor Validation
+- `Compressor::new()`, `Reverb::new()`, `EnvelopeLimiter::new()`, `DeEsser::new()` now return `Result` — parameters are validated on construction
+
+### Added
+
+#### Format Conversion
+- `SampleFormat::I24`, `SampleFormat::F64`, `SampleFormat::U8` variants
+- `i24_to_f32()` / `f32_to_i24()` — 24-bit (i32-padded) conversion
+- `i24_packed_to_f32()` / `f32_to_i24_packed()` — 24-bit packed 3-byte LE conversion
+- `f64_to_f32()` / `f32_to_f64()` — double-precision conversion
+- `u8_to_f32()` / `f32_to_u8()` — unsigned 8-bit PCM (centered at 128)
+
+#### Dithering
+- `buffer::dither::tpdf_dither()` — Triangular PDF dithering for bit-depth reduction
+- `buffer::dither::noise_shaped_dither()` — first-order error feedback noise-shaped dithering
+
+#### Buffer Utilities
+- `buffer::ops::crossfade()` — linear and equal-power crossfade between two buffers
+- `buffer::ops::fade_in()` / `fade_out()` — linear and exponential fade ramps
+- `buffer::ops::normalize_to_lufs()` — normalize to target LUFS using EBU R128 measurement
+
+#### Memory & Allocation
+- `AudioBufferRef<'a>` — zero-copy read-only buffer view (borrows samples, no allocation)
+- `BufferPool` — reusable buffer arena to reduce allocation pressure in RT paths
+- `StftProcessor` — caches Hann window for repeated STFT computations
+- `GraphProcessor` now uses Vec-indexed outputs (was HashMap) and pre-allocated input scratch
+
+#### Parameter Validation
+- `AdsrParams::validate()`, `ModulatedDelayParams::validate()`, `Oscillator::validate()`, `Lfo::validate()`
+- Sample rate ceiling raised from 384 kHz to 768 kHz
+
+#### Trait Derives
+- `GraphicEq` now implements `Debug` and `Clone`
+
+#### Robustness
+- `dsp::sanitize_sample()` — NaN/Inf → 0.0 helper
+- NaN guards added to reverb, delay, de-esser, limiter process paths
+- `// SAFETY:` comments on all unsafe blocks in simd/x86.rs, simd/aarch64.rs, ffi.rs, meter/mod.rs
+
+---
+
 ## [0.21.3] — 2026-03-21
 
 ### Changed

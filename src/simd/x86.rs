@@ -5,64 +5,80 @@ use std::arch::x86_64::*;
 
 pub fn add_buffers(dst: &mut [f32], src: &[f32]) {
     if is_x86_feature_detected!("avx2") {
+        // SAFETY: CPU feature detected above; calling the matching target_feature(enable="avx2") function.
         unsafe { add_buffers_avx2(dst, src) };
     } else {
+        // SAFETY: CPU feature detected above; calling the matching target_feature(enable="sse2") function.
         unsafe { add_buffers_sse2(dst, src) };
     }
 }
 
 pub fn apply_gain(samples: &mut [f32], gain: f32) {
     if is_x86_feature_detected!("avx2") {
+        // SAFETY: CPU feature detected above; calling the matching target_feature(enable="avx2") function.
         unsafe { apply_gain_avx2(samples, gain) };
     } else {
+        // SAFETY: CPU feature detected above; calling the matching target_feature(enable="sse2") function.
         unsafe { apply_gain_sse2(samples, gain) };
     }
 }
 
 pub fn clamp(samples: &mut [f32], min: f32, max: f32) {
     if is_x86_feature_detected!("avx2") {
+        // SAFETY: CPU feature detected above; calling the matching target_feature(enable="avx2") function.
         unsafe { clamp_avx2(samples, min, max) };
     } else {
+        // SAFETY: CPU feature detected above; calling the matching target_feature(enable="sse2") function.
         unsafe { clamp_sse2(samples, min, max) };
     }
 }
 
 pub fn peak_abs(samples: &[f32]) -> f32 {
     if is_x86_feature_detected!("avx2") {
+        // SAFETY: CPU feature detected above; calling the matching target_feature(enable="avx2") function.
         unsafe { peak_abs_avx2(samples) }
     } else {
+        // SAFETY: CPU feature detected above; calling the matching target_feature(enable="sse2") function.
         unsafe { peak_abs_sse2(samples) }
     }
 }
 
 pub fn sum_of_squares(samples: &[f32]) -> f64 {
+    // SAFETY: SSE2 is always available on x86_64; calling the matching target_feature(enable="sse2") function.
     unsafe { sum_of_squares_sse2(samples) }
 }
 
 pub fn noise_gate(samples: &mut [f32], threshold: f32) {
+    // SAFETY: SSE2 is always available on x86_64; calling the matching target_feature(enable="sse2") function.
     unsafe { noise_gate_sse2(samples, threshold) };
 }
 
 pub fn i16_to_f32(src: &[i16], dst: &mut [f32]) {
+    // SAFETY: SSE2 is always available on x86_64; calling the matching target_feature(enable="sse2") function.
     unsafe { i16_to_f32_sse2(src, dst) };
 }
 
 pub fn f32_to_i16(src: &[f32], dst: &mut [i16]) {
+    // SAFETY: SSE2 is always available on x86_64; calling the matching target_feature(enable="sse2") function.
     unsafe { f32_to_i16_sse2(src, dst) };
 }
 
 pub fn weighted_sum(samples: &[f32], weights: &[f32]) -> (f32, f32) {
+    // SAFETY: SSE2 is always available on x86_64; calling the matching target_feature(enable="sse2") function.
     unsafe { weighted_sum_sse2(samples, weights) }
 }
 
 // ── SSE2 (4 f32 per op) ────────────────────────────────────────────
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn add_buffers_sse2(dst: &mut [f32], src: &[f32]) {
     let len = dst.len().min(src.len());
     let chunks = len / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm_loadu_ps allows unaligned reads.
+        // Storing to slice with bounds checked by loop range. _mm_storeu_ps allows unaligned writes.
         unsafe {
             let a = _mm_loadu_ps(dst.as_ptr().add(off));
             let b = _mm_loadu_ps(src.as_ptr().add(off));
@@ -74,12 +90,16 @@ unsafe fn add_buffers_sse2(dst: &mut [f32], src: &[f32]) {
     }
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn apply_gain_sse2(samples: &mut [f32], gain: f32) {
+    // SAFETY: SSE2 intrinsic to broadcast a scalar; no memory access.
     let g = unsafe { _mm_set1_ps(gain) };
     let chunks = samples.len() / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm_loadu_ps allows unaligned reads.
+        // Storing to slice with bounds checked by loop range. _mm_storeu_ps allows unaligned writes.
         unsafe {
             let a = _mm_loadu_ps(samples.as_ptr().add(off));
             _mm_storeu_ps(samples.as_mut_ptr().add(off), _mm_mul_ps(a, g));
@@ -90,13 +110,18 @@ unsafe fn apply_gain_sse2(samples: &mut [f32], gain: f32) {
     }
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn clamp_sse2(samples: &mut [f32], min_val: f32, max_val: f32) {
+    // SAFETY: SSE2 intrinsic to broadcast a scalar; no memory access.
     let vmin = unsafe { _mm_set1_ps(min_val) };
+    // SAFETY: SSE2 intrinsic to broadcast a scalar; no memory access.
     let vmax = unsafe { _mm_set1_ps(max_val) };
     let chunks = samples.len() / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm_loadu_ps allows unaligned reads.
+        // Storing to slice with bounds checked by loop range. _mm_storeu_ps allows unaligned writes.
         unsafe {
             let a = _mm_loadu_ps(samples.as_ptr().add(off));
             let clamped = _mm_min_ps(_mm_max_ps(a, vmin), vmax);
@@ -108,17 +133,21 @@ unsafe fn clamp_sse2(samples: &mut [f32], min_val: f32, max_val: f32) {
     }
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn peak_abs_sse2(samples: &[f32]) -> f32 {
     if samples.is_empty() {
         return 0.0;
     }
+    // SAFETY: SSE2 intrinsic to create abs mask; no memory access.
     let abs_mask = unsafe { _mm_castsi128_ps(_mm_set1_epi32(0x7FFF_FFFF_u32 as i32)) };
+    // SAFETY: SSE2 intrinsic to create zero vector; no memory access.
     let mut vmax = unsafe { _mm_setzero_ps() };
 
     let chunks = samples.len() / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm_loadu_ps allows unaligned reads.
         unsafe {
             let a = _mm_loadu_ps(samples.as_ptr().add(off));
             let abs_a = _mm_and_ps(a, abs_mask);
@@ -126,6 +155,7 @@ unsafe fn peak_abs_sse2(samples: &[f32]) -> f32 {
         }
     }
 
+    // SAFETY: Calling target_feature(enable="sse2") helper with register value; no memory access.
     let mut result = unsafe { horizontal_max_sse2(vmax) };
     for i in (chunks * 4)..samples.len() {
         result = result.max(samples[i].abs());
@@ -133,8 +163,10 @@ unsafe fn peak_abs_sse2(samples: &[f32]) -> f32 {
     result
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn horizontal_max_sse2(v: __m128) -> f32 {
+    // SAFETY: SSE2 register-only shuffle and max operations; no memory access.
     unsafe {
         let shuf = _mm_shuffle_ps(v, v, 0b_01_00_11_10);
         let max1 = _mm_max_ps(v, shuf);
@@ -144,23 +176,29 @@ unsafe fn horizontal_max_sse2(v: __m128) -> f32 {
     }
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn sum_of_squares_sse2(samples: &[f32]) -> f64 {
     let mut total = 0.0f64;
     let chunks = samples.len() / 4;
+    // SAFETY: SSE2 intrinsic to create zero vector; no memory access.
     let mut acc = unsafe { _mm_setzero_ps() };
 
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm_loadu_ps allows unaligned reads.
         unsafe {
             let a = _mm_loadu_ps(samples.as_ptr().add(off));
             acc = _mm_add_ps(acc, _mm_mul_ps(a, a));
         }
         if (i + 1) % 256 == 0 {
+            // SAFETY: Calling target_feature(enable="sse2") helper with register value; no memory access.
             total += unsafe { horizontal_sum_f64_sse2(acc) };
+            // SAFETY: SSE2 intrinsic to create zero vector; no memory access.
             acc = unsafe { _mm_setzero_ps() };
         }
     }
+    // SAFETY: Calling target_feature(enable="sse2") helper with register value; no memory access.
     total += unsafe { horizontal_sum_f64_sse2(acc) };
 
     for i in (chunks * 4)..samples.len() {
@@ -170,8 +208,10 @@ unsafe fn sum_of_squares_sse2(samples: &[f32]) -> f64 {
     total
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn horizontal_sum_f64_sse2(v: __m128) -> f64 {
+    // SAFETY: SSE2 register-only conversion and arithmetic operations; no memory access.
     unsafe {
         let lo = _mm_cvtps_pd(v);
         let hi = _mm_cvtps_pd(_mm_movehl_ps(v, v));
@@ -182,14 +222,19 @@ unsafe fn horizontal_sum_f64_sse2(v: __m128) -> f64 {
     }
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn noise_gate_sse2(samples: &mut [f32], threshold: f32) {
+    // SAFETY: SSE2 intrinsic to create abs mask; no memory access.
     let abs_mask = unsafe { _mm_castsi128_ps(_mm_set1_epi32(0x7FFF_FFFF_u32 as i32)) };
+    // SAFETY: SSE2 intrinsic to broadcast a scalar; no memory access.
     let thresh = unsafe { _mm_set1_ps(threshold) };
 
     let chunks = samples.len() / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm_loadu_ps allows unaligned reads.
+        // Storing to slice with bounds checked by loop range. _mm_storeu_ps allows unaligned writes.
         unsafe {
             let a = _mm_loadu_ps(samples.as_ptr().add(off));
             let abs_a = _mm_and_ps(a, abs_mask);
@@ -205,9 +250,11 @@ unsafe fn noise_gate_sse2(samples: &mut [f32], threshold: f32) {
     }
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn i16_to_f32_sse2(src: &[i16], dst: &mut [f32]) {
     let len = src.len().min(dst.len());
+    // SAFETY: SSE2 intrinsic to broadcast a scalar; no memory access.
     let scale = unsafe { _mm_set1_ps(1.0 / 32768.0) };
 
     let chunks = len / 4;
@@ -217,6 +264,7 @@ unsafe fn i16_to_f32_sse2(src: &[i16], dst: &mut [f32]) {
         let s1 = src[off + 1] as i32;
         let s2 = src[off + 2] as i32;
         let s3 = src[off + 3] as i32;
+        // SAFETY: SSE2 intrinsics operating on scalars loaded above. Storing to slice with bounds checked by loop range.
         unsafe {
             let ints = _mm_set_epi32(s3, s2, s1, s0);
             let floats = _mm_cvtepi32_ps(ints);
@@ -229,16 +277,22 @@ unsafe fn i16_to_f32_sse2(src: &[i16], dst: &mut [f32]) {
     }
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn f32_to_i16_sse2(src: &[f32], dst: &mut [i16]) {
     let len = src.len().min(dst.len());
+    // SAFETY: SSE2 intrinsic to broadcast a scalar; no memory access.
     let vmin = unsafe { _mm_set1_ps(-1.0) };
+    // SAFETY: SSE2 intrinsic to broadcast a scalar; no memory access.
     let vmax = unsafe { _mm_set1_ps(1.0) };
+    // SAFETY: SSE2 intrinsic to broadcast a scalar; no memory access.
     let scale = unsafe { _mm_set1_ps(32767.0) };
 
     let chunks = len / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm_loadu_ps allows unaligned reads.
+        // Storing to dst with bounds checked by loop range via indexed access.
         unsafe {
             let a = _mm_loadu_ps(src.as_ptr().add(off));
             let clamped = _mm_min_ps(_mm_max_ps(a, vmin), vmax);
@@ -257,6 +311,7 @@ unsafe fn f32_to_i16_sse2(src: &[f32], dst: &mut [i16]) {
     }
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn weighted_sum_sse2(samples: &[f32], weights: &[f32]) -> (f32, f32) {
     let len = samples.len().min(weights.len());
@@ -266,6 +321,7 @@ unsafe fn weighted_sum_sse2(samples: &[f32], weights: &[f32]) -> (f32, f32) {
 
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm_loadu_ps allows unaligned reads.
         unsafe {
             let s = _mm_loadu_ps(samples.as_ptr().add(off));
             let w = _mm_loadu_ps(weights.as_ptr().add(off));
@@ -275,7 +331,9 @@ unsafe fn weighted_sum_sse2(samples: &[f32], weights: &[f32]) -> (f32, f32) {
     }
 
     // Horizontal sum both accumulators
+    // SAFETY: Calling target_feature(enable="sse2") helper with register value; no memory access.
     let sum = unsafe { horizontal_sum_f32_sse2(acc_sum) };
+    // SAFETY: Calling target_feature(enable="sse2") helper with register value; no memory access.
     let wt = unsafe { horizontal_sum_f32_sse2(acc_wt) };
 
     let mut total_sum = sum;
@@ -287,8 +345,10 @@ unsafe fn weighted_sum_sse2(samples: &[f32], weights: &[f32]) -> (f32, f32) {
     (total_sum, total_wt)
 }
 
+// SAFETY: Caller verifies SSE2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "sse2")]
 unsafe fn horizontal_sum_f32_sse2(v: __m128) -> f32 {
+    // SAFETY: SSE2 register-only shuffle and add operations; no memory access.
     unsafe {
         let shuf = _mm_shuffle_ps(v, v, 0b_01_00_11_10);
         let sum1 = _mm_add_ps(v, shuf);
@@ -300,12 +360,15 @@ unsafe fn horizontal_sum_f32_sse2(v: __m128) -> f32 {
 
 // ── AVX2 (8 f32 per op) ────────────────────────────────────────────
 
+// SAFETY: Caller verifies AVX2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "avx2")]
 unsafe fn add_buffers_avx2(dst: &mut [f32], src: &[f32]) {
     let len = dst.len().min(src.len());
     let chunks = len / 8;
     for i in 0..chunks {
         let off = i * 8;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm256_loadu_ps allows unaligned reads.
+        // Storing to slice with bounds checked by loop range. _mm256_storeu_ps allows unaligned writes.
         unsafe {
             let a = _mm256_loadu_ps(dst.as_ptr().add(off));
             let b = _mm256_loadu_ps(src.as_ptr().add(off));
@@ -317,12 +380,16 @@ unsafe fn add_buffers_avx2(dst: &mut [f32], src: &[f32]) {
     }
 }
 
+// SAFETY: Caller verifies AVX2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "avx2")]
 unsafe fn apply_gain_avx2(samples: &mut [f32], gain: f32) {
+    // SAFETY: AVX2 intrinsic to broadcast a scalar; no memory access.
     let g = unsafe { _mm256_set1_ps(gain) };
     let chunks = samples.len() / 8;
     for i in 0..chunks {
         let off = i * 8;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm256_loadu_ps allows unaligned reads.
+        // Storing to slice with bounds checked by loop range. _mm256_storeu_ps allows unaligned writes.
         unsafe {
             let a = _mm256_loadu_ps(samples.as_ptr().add(off));
             _mm256_storeu_ps(samples.as_mut_ptr().add(off), _mm256_mul_ps(a, g));
@@ -333,13 +400,18 @@ unsafe fn apply_gain_avx2(samples: &mut [f32], gain: f32) {
     }
 }
 
+// SAFETY: Caller verifies AVX2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "avx2")]
 unsafe fn clamp_avx2(samples: &mut [f32], min_val: f32, max_val: f32) {
+    // SAFETY: AVX2 intrinsic to broadcast a scalar; no memory access.
     let vmin = unsafe { _mm256_set1_ps(min_val) };
+    // SAFETY: AVX2 intrinsic to broadcast a scalar; no memory access.
     let vmax = unsafe { _mm256_set1_ps(max_val) };
     let chunks = samples.len() / 8;
     for i in 0..chunks {
         let off = i * 8;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm256_loadu_ps allows unaligned reads.
+        // Storing to slice with bounds checked by loop range. _mm256_storeu_ps allows unaligned writes.
         unsafe {
             let a = _mm256_loadu_ps(samples.as_ptr().add(off));
             let clamped = _mm256_min_ps(_mm256_max_ps(a, vmin), vmax);
@@ -351,17 +423,21 @@ unsafe fn clamp_avx2(samples: &mut [f32], min_val: f32, max_val: f32) {
     }
 }
 
+// SAFETY: Caller verifies AVX2 support via is_x86_feature_detected before calling.
 #[target_feature(enable = "avx2")]
 unsafe fn peak_abs_avx2(samples: &[f32]) -> f32 {
     if samples.is_empty() {
         return 0.0;
     }
+    // SAFETY: AVX2 intrinsic to create abs mask; no memory access.
     let abs_mask = unsafe { _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFF_FFFF_u32 as i32)) };
+    // SAFETY: AVX2 intrinsic to create zero vector; no memory access.
     let mut vmax = unsafe { _mm256_setzero_ps() };
 
     let chunks = samples.len() / 8;
     for i in 0..chunks {
         let off = i * 8;
+        // SAFETY: Loading from slice with bounds checked by loop range. _mm256_loadu_ps allows unaligned reads.
         unsafe {
             let a = _mm256_loadu_ps(samples.as_ptr().add(off));
             let abs_a = _mm256_and_ps(a, abs_mask);
@@ -369,6 +445,7 @@ unsafe fn peak_abs_avx2(samples: &[f32]) -> f32 {
         }
     }
 
+    // SAFETY: AVX2/SSE2 register-only extract and max operations; then calling SSE2 helper.
     let mut result = unsafe {
         let hi128 = _mm256_extractf128_ps(vmax, 1);
         let lo128 = _mm256_castps256_ps128(vmax);

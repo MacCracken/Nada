@@ -246,11 +246,11 @@ mod tests {
         let buf = AudioBuffer::from_interleaved(samples, 1, sr).unwrap();
 
         let resampled = resample_sinc(&buf, 48000, ResampleQuality::Good).unwrap();
-        let spec = spectrum_dft(&resampled, 4096);
+        let spec = spectrum_dft(&resampled, 4096).unwrap();
         let dominant = spec.dominant_frequency().unwrap();
 
         assert!(
-            (dominant - 440.0).abs() < spec.freq_resolution * 2.0,
+            (dominant - 440.0).abs() < spec.freq_resolution() * 2.0,
             "Dominant freq {dominant} should be near 440Hz"
         );
     }

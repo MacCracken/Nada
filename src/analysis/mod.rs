@@ -13,28 +13,29 @@ pub use dynamics::{DynamicsAnalysis, analyze_dynamics};
 pub use fft::spectrum_fft;
 pub use loudness::{R128Loudness, measure_r128};
 pub use onset::{OnsetResult, detect_onsets};
-pub use stft::{Spectrogram, stft as compute_stft};
+pub use stft::{Spectrogram, StftProcessor, stft as compute_stft};
 pub use waveform::{WaveformData, compute_waveform};
 
 use crate::buffer::AudioBuffer;
+use crate::error::NadaError;
 
 /// Spectrum analysis result.
 #[derive(Debug, Clone)]
 pub struct Spectrum {
     /// Magnitude bins (linear scale, 0.0–1.0 normalized).
-    pub magnitudes: Vec<f32>,
+    magnitudes: Vec<f32>,
     /// Magnitude bins in dB (relative to peak).
-    pub magnitude_db: Vec<f32>,
+    magnitude_db: Vec<f32>,
     /// Frequency resolution (Hz per bin).
-    pub freq_resolution: f32,
+    freq_resolution: f32,
     /// Sample rate used for analysis.
-    pub sample_rate: u32,
+    sample_rate: u32,
     /// FFT window size used.
-    pub fft_size: usize,
+    fft_size: usize,
     /// Frequency of the peak bin (Hz).
-    pub peak_frequency: f32,
+    peak_frequency: f32,
     /// Magnitude of the peak bin (dB).
-    pub peak_magnitude_db: f32,
+    peak_magnitude_db: f32,
 }
 
 impl Spectrum {
@@ -74,6 +75,21 @@ impl Spectrum {
             peak_magnitude_db,
         }
     }
+
+    /// Magnitude bins (linear scale, 0.0–1.0 normalized).
+    pub fn magnitudes(&self) -> &[f32] { &self.magnitudes }
+    /// Magnitude bins in dB (relative to peak).
+    pub fn magnitude_db(&self) -> &[f32] { &self.magnitude_db }
+    /// Frequency resolution (Hz per bin).
+    pub fn freq_resolution(&self) -> f32 { self.freq_resolution }
+    /// Sample rate used for analysis.
+    pub fn sample_rate(&self) -> u32 { self.sample_rate }
+    /// FFT window size used.
+    pub fn fft_size(&self) -> usize { self.fft_size }
+    /// Frequency of the peak bin (Hz).
+    pub fn peak_frequency(&self) -> f32 { self.peak_frequency }
+    /// Magnitude of the peak bin (dB).
+    pub fn peak_magnitude_db(&self) -> f32 { self.peak_magnitude_db }
 
     /// Number of frequency bins.
     pub fn bin_count(&self) -> usize {
@@ -141,7 +157,18 @@ impl Spectrum {
 ///
 /// For production use, replace with `rustfft` for O(n log n) performance.
 /// This O(n^2) implementation is correct for testing and small buffers.
-pub fn spectrum_dft(buf: &AudioBuffer, window_size: usize) -> Spectrum {
+///
+/// # Errors
+///
+/// Returns `NadaError::Dsp` if the buffer has no samples or zero channels.
+pub fn spectrum_dft(buf: &AudioBuffer, window_size: usize) -> crate::Result<Spectrum> {
+    if buf.samples.is_empty() {
+        return Err(NadaError::Dsp("cannot compute DFT on empty buffer".into()));
+    }
+    if buf.channels == 0 {
+        return Err(NadaError::Dsp("cannot compute DFT with zero channels".into()));
+    }
+
     let samples = if buf.samples.len() >= window_size {
         &buf.samples[..window_size]
     } else {
@@ -172,7 +199,7 @@ pub fn spectrum_dft(buf: &AudioBuffer, window_size: usize) -> Spectrum {
     }
 
     let freq_resolution = buf.sample_rate as f32 / n as f32;
-    Spectrum::from_magnitudes(magnitudes, freq_resolution, buf.sample_rate, n)
+    Ok(Spectrum::from_magnitudes(magnitudes, freq_resolution, buf.sample_rate, n))
 }
 
 /// Compute integrated loudness in LUFS (EBU R128 simplified).
@@ -243,18 +270,18 @@ mod tests {
     #[test]
     fn spectrum_of_silence() {
         let buf = AudioBuffer::silence(1, 256, 44100);
-        let spec = spectrum_dft(&buf, 256);
+        let spec = spectrum_dft(&buf, 256).unwrap();
         assert_eq!(spec.bin_count(), 128);
-        assert!(spec.magnitudes.iter().all(|&m| m == 0.0));
+        assert!(spec.magnitudes().iter().all(|&m| m == 0.0));
     }
 
     #[test]
     fn spectrum_bin_frequency() {
         let buf = AudioBuffer::silence(1, 1024, 44100);
-        let spec = spectrum_dft(&buf, 1024);
-        assert!((spec.freq_resolution - 44100.0 / 1024.0).abs() < 0.1);
+        let spec = spectrum_dft(&buf, 1024).unwrap();
+        assert!((spec.freq_resolution() - 44100.0 / 1024.0).abs() < 0.1);
         assert!((spec.bin_frequency(0)).abs() < 0.1);
-        assert!((spec.bin_frequency(1) - spec.freq_resolution).abs() < 0.1);
+        assert!((spec.bin_frequency(1) - spec.freq_resolution()).abs() < 0.1);
     }
 
     #[test]
@@ -286,12 +313,12 @@ mod tests {
             .map(|i| (2.0 * std::f32::consts::PI * freq * i as f32 / sample_rate as f32).sin())
             .collect();
         let buf = AudioBuffer::from_interleaved(samples, 1, sample_rate).unwrap();
-        let spec = spectrum_dft(&buf, frames);
+        let spec = spectrum_dft(&buf, frames).unwrap();
 
         let dominant = spec.dominant_frequency().unwrap();
         // Should be near 440Hz (within one bin width)
         assert!(
-            (dominant - 440.0).abs() < spec.freq_resolution * 2.0,
+            (dominant - 440.0).abs() < spec.freq_resolution() * 2.0,
             "dominant={dominant}, expected ~440"
         );
     }
@@ -331,7 +358,7 @@ mod tests {
     #[test]
     fn spectral_centroid_of_silence() {
         let buf = AudioBuffer::silence(1, 256, 44100);
-        let spec = spectrum_dft(&buf, 256);
+        let spec = spectrum_dft(&buf, 256).unwrap();
         assert_eq!(spec.spectral_centroid(), 0.0);
     }
 
@@ -343,7 +370,7 @@ mod tests {
             .map(|i| (2.0 * std::f32::consts::PI * freq * i as f32 / sr as f32).sin())
             .collect();
         let buf = AudioBuffer::from_interleaved(samples, 1, sr).unwrap();
-        let spec = spectrum_fft(&buf, 4096);
+        let spec = spectrum_fft(&buf, 4096).unwrap();
         let centroid = spec.spectral_centroid();
         // Centroid should be near the sine frequency
         assert!(
@@ -355,7 +382,7 @@ mod tests {
     #[test]
     fn spectral_rolloff_of_silence() {
         let buf = AudioBuffer::silence(1, 256, 44100);
-        let spec = spectrum_dft(&buf, 256);
+        let spec = spectrum_dft(&buf, 256).unwrap();
         assert_eq!(spec.spectral_rolloff(0.95), 0.0);
     }
 
@@ -366,7 +393,7 @@ mod tests {
             .map(|i| (2.0 * std::f32::consts::PI * 1000.0 * i as f32 / sr as f32).sin())
             .collect();
         let buf = AudioBuffer::from_interleaved(samples, 1, sr).unwrap();
-        let spec = spectrum_fft(&buf, 4096);
+        let spec = spectrum_fft(&buf, 4096).unwrap();
         let rolloff = spec.spectral_rolloff(0.95);
         // For a pure sine, 95% rolloff should be near the fundamental
         assert!(rolloff > 0.0);

@@ -19,28 +19,28 @@ fn make_stereo_1s() -> AudioBuffer {
 fn bench_fft_4096(c: &mut Criterion) {
     let buf = make_mono_1s();
     c.bench_function("fft_4096_mono", |b| {
-        b.iter(|| analysis::spectrum_fft(&buf, 4096))
+        b.iter(|| analysis::spectrum_fft(&buf, 4096).unwrap())
     });
 }
 
 fn bench_dft_4096(c: &mut Criterion) {
     let buf = make_mono_1s();
     c.bench_function("dft_4096_mono", |b| {
-        b.iter(|| analysis::spectrum_dft(&buf, 4096))
+        b.iter(|| analysis::spectrum_dft(&buf, 4096).unwrap())
     });
 }
 
 fn bench_stft_1s(c: &mut Criterion) {
     let buf = make_mono_1s();
     c.bench_function("stft_2048_512_mono_1s", |b| {
-        b.iter(|| analysis::compute_stft(&buf, 2048, 512))
+        b.iter(|| analysis::compute_stft(&buf, 2048, 512).unwrap())
     });
 }
 
 fn bench_r128_stereo_1s(c: &mut Criterion) {
     let buf = make_stereo_1s();
     c.bench_function("r128_stereo_1s", |b| {
-        b.iter(|| analysis::measure_r128(&buf))
+        b.iter(|| analysis::measure_r128(&buf).unwrap())
     });
 }
 
@@ -54,14 +54,14 @@ fn bench_dynamics_1s(c: &mut Criterion) {
 fn bench_chromagram(c: &mut Criterion) {
     let buf = make_mono_1s();
     c.bench_function("chromagram_4096_mono", |b| {
-        b.iter(|| analysis::chromagram(&buf, 4096))
+        b.iter(|| analysis::chromagram(&buf, 4096).unwrap())
     });
 }
 
 fn bench_onset_detection(c: &mut Criterion) {
     let buf = make_mono_1s();
     c.bench_function("onset_2048_512_mono_1s", |b| {
-        b.iter(|| analysis::detect_onsets(&buf, 2048, 512, 0.3))
+        b.iter(|| analysis::detect_onsets(&buf, 2048, 512, 0.3).unwrap())
     });
 }
 

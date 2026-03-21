@@ -35,6 +35,20 @@ pub struct Lfo {
 }
 
 impl Lfo {
+    /// Validate parameters. Returns an error description if invalid.
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.rate < 0.0 {
+            return Err("rate must be >= 0.0");
+        }
+        if self.depth < 0.0 {
+            return Err("depth must be >= 0.0");
+        }
+        if self.sample_rate <= 0.0 {
+            return Err("sample_rate must be > 0.0");
+        }
+        Ok(())
+    }
+
     /// Create a new LFO.
     pub fn new(shape: LfoShape, rate: f32, depth: f32, sample_rate: u32) -> Self {
         Self {

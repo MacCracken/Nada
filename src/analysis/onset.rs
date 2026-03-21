@@ -17,19 +17,23 @@ pub struct OnsetResult {
 /// - `window_size`: FFT window size (power of 2, e.g., 2048)
 /// - `hop_size`: hop between windows (e.g., 512)
 /// - `threshold`: onset sensitivity (0.0–1.0, lower = more sensitive, default ~0.3)
+///
+/// # Errors
+///
+/// Returns `NadaError::Dsp` if the underlying STFT computation fails.
 pub fn detect_onsets(
     buf: &AudioBuffer,
     window_size: usize,
     hop_size: usize,
     threshold: f32,
-) -> OnsetResult {
-    let sg = stft(buf, window_size, hop_size);
+) -> crate::Result<OnsetResult> {
+    let sg = stft(buf, window_size, hop_size)?;
 
     if sg.num_frames() < 2 {
-        return OnsetResult {
+        return Ok(OnsetResult {
             positions: Vec::new(),
             strengths: Vec::new(),
-        };
+        });
     }
 
     // Compute spectral flux: sum of positive differences between consecutive frames
@@ -68,10 +72,10 @@ pub fn detect_onsets(
         }
     }
 
-    OnsetResult {
+    Ok(OnsetResult {
         positions,
         strengths,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -81,7 +85,7 @@ mod tests {
     #[test]
     fn silence_no_onsets() {
         let buf = AudioBuffer::silence(1, 44100, 44100);
-        let result = detect_onsets(&buf, 2048, 512, 0.3);
+        let result = detect_onsets(&buf, 2048, 512, 0.3).unwrap();
         assert!(result.positions.is_empty());
     }
 
@@ -92,7 +96,7 @@ mod tests {
         // Impulse at ~0.5 seconds
         samples[22050..22150].fill(0.9);
         let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
-        let result = detect_onsets(&buf, 2048, 512, 0.2);
+        let result = detect_onsets(&buf, 2048, 512, 0.2).unwrap();
 
         assert!(!result.positions.is_empty(), "Should detect the impulse");
         // Onset should be near sample 22050
@@ -114,7 +118,7 @@ mod tests {
         samples[10000..10100].fill(0.8);
         samples[30000..30100].fill(0.8);
         let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
-        let result = detect_onsets(&buf, 2048, 512, 0.2);
+        let result = detect_onsets(&buf, 2048, 512, 0.2).unwrap();
 
         assert!(
             result.positions.len() >= 2,
@@ -128,7 +132,7 @@ mod tests {
         let mut samples = vec![0.0f32; 44100];
         samples[22050..22150].fill(0.9);
         let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
-        let result = detect_onsets(&buf, 2048, 512, 0.2);
+        let result = detect_onsets(&buf, 2048, 512, 0.2).unwrap();
 
         assert_eq!(result.positions.len(), result.strengths.len());
         for &s in &result.strengths {
@@ -144,8 +148,8 @@ mod tests {
         samples[30000..30050].fill(0.9); // Loud
         let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
 
-        let sensitive = detect_onsets(&buf, 2048, 512, 0.1);
-        let strict = detect_onsets(&buf, 2048, 512, 0.5);
+        let sensitive = detect_onsets(&buf, 2048, 512, 0.1).unwrap();
+        let strict = detect_onsets(&buf, 2048, 512, 0.5).unwrap();
 
         assert!(sensitive.positions.len() >= strict.positions.len());
     }

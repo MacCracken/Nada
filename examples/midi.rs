@@ -56,11 +56,7 @@ fn main() {
     println!("  Active voices: {}", voices.active_count());
 
     // Routing with velocity curve
-    let route = MidiRoute {
-        channel_filter: Some(0),
-        velocity_curve: VelocityCurve::Soft,
-        note_range: (48, 84),
-    };
+    let route = MidiRoute::new(Some(0), VelocityCurve::Soft, (48, 84));
     let event = NoteEvent {
         position: 0,
         duration: 1000,

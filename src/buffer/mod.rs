@@ -4,6 +4,8 @@
 //! and zero-copy views for read-only processing.
 
 pub mod convert;
+pub mod dither;
+pub mod ops;
 pub mod resample;
 
 use serde::{Deserialize, Serialize};
@@ -20,6 +22,12 @@ pub enum SampleFormat {
     I16,
     /// 32-bit signed integer (high-resolution audio)
     I32,
+    /// 24-bit signed integer (professional audio)
+    I24,
+    /// 64-bit float (high-precision processing)
+    F64,
+    /// Unsigned 8-bit (legacy formats)
+    U8,
 }
 
 impl SampleFormat {
@@ -29,6 +37,9 @@ impl SampleFormat {
             Self::F32 => 4,
             Self::I16 => 2,
             Self::I32 => 4,
+            Self::I24 => 3,
+            Self::F64 => 8,
+            Self::U8 => 1,
         }
     }
 }
@@ -39,6 +50,9 @@ impl std::fmt::Display for SampleFormat {
             Self::F32 => write!(f, "f32"),
             Self::I16 => write!(f, "i16"),
             Self::I32 => write!(f, "i32"),
+            Self::I24 => write!(f, "i24"),
+            Self::F64 => write!(f, "f64"),
+            Self::U8 => write!(f, "u8"),
         }
     }
 }
@@ -55,19 +69,18 @@ pub enum Layout {
 
 /// An audio buffer holding sample data in a known format.
 ///
-/// Fields are public for the v0.20.x series. They will become private
-/// in v0.21.3 — use accessor methods (`samples()`, `channels()`, etc.)
-/// to prepare for the transition.
+/// Use accessor methods (`samples()`, `channels()`, etc.) to read fields.
+/// Use `samples_mut()` for in-place processing.
 #[derive(Debug, Clone)]
 pub struct AudioBuffer {
     /// Raw sample data (f32 internally, converted on input/output).
-    pub samples: Vec<f32>,
+    pub(crate) samples: Vec<f32>,
     /// Number of channels.
-    pub channels: u32,
+    pub(crate) channels: u32,
     /// Sample rate in Hz.
-    pub sample_rate: u32,
+    pub(crate) sample_rate: u32,
     /// Number of frames (samples per channel).
-    pub frames: usize,
+    pub(crate) frames: usize,
 }
 
 // Accessor methods — use these instead of direct field access.
@@ -115,7 +128,7 @@ impl AudioBuffer {
             tracing::warn!(channels, "AudioBuffer: invalid channel count");
             return Err(NadaError::InvalidChannels(0));
         }
-        if sample_rate == 0 || sample_rate > 384000 {
+        if sample_rate == 0 || sample_rate > 768000 {
             tracing::warn!(sample_rate, "AudioBuffer: invalid sample rate");
             return Err(NadaError::InvalidSampleRate(sample_rate));
         }
@@ -288,6 +301,124 @@ pub fn resample_linear(buf: &AudioBuffer, target_rate: u32) -> Result<AudioBuffe
         sample_rate: target_rate,
         frames: new_frames,
     })
+}
+
+/// A read-only view into an audio buffer without copying sample data.
+///
+/// Borrows the sample slice from an existing [`AudioBuffer`], avoiding allocation
+/// for analysis and metering paths that don't need to modify audio.
+#[derive(Debug)]
+pub struct AudioBufferRef<'a> {
+    samples: &'a [f32],
+    channels: u32,
+    sample_rate: u32,
+    frames: usize,
+}
+
+impl<'a> AudioBufferRef<'a> {
+    /// Create a read-only view of an existing buffer.
+    pub fn from_buffer(buf: &'a AudioBuffer) -> Self {
+        Self {
+            samples: &buf.samples,
+            channels: buf.channels,
+            sample_rate: buf.sample_rate,
+            frames: buf.frames,
+        }
+    }
+
+    /// Create from a raw slice.
+    pub fn from_slice(samples: &'a [f32], channels: u32, sample_rate: u32) -> Self {
+        let frames = if channels > 0 {
+            samples.len() / channels as usize
+        } else {
+            0
+        };
+        Self {
+            samples,
+            channels,
+            sample_rate,
+            frames,
+        }
+    }
+
+    /// Immutable sample data.
+    pub fn samples(&self) -> &[f32] {
+        self.samples
+    }
+
+    /// Number of channels.
+    pub fn channels(&self) -> u32 {
+        self.channels
+    }
+
+    /// Sample rate in Hz.
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    /// Number of frames.
+    pub fn frames(&self) -> usize {
+        self.frames
+    }
+
+    /// Peak amplitude.
+    pub fn peak(&self) -> f32 {
+        self.samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max)
+    }
+
+    /// RMS level.
+    pub fn rms(&self) -> f32 {
+        if self.samples.is_empty() {
+            return 0.0;
+        }
+        let sum_sq: f64 = self.samples.iter().map(|s| (*s as f64) * (*s as f64)).sum();
+        (sum_sq / self.samples.len() as f64).sqrt() as f32
+    }
+}
+
+/// A reusable pool of audio buffers to reduce allocation pressure.
+///
+/// Effects and graph nodes borrow buffers from the pool instead of
+/// allocating fresh ones each cycle.
+#[derive(Debug)]
+pub struct BufferPool {
+    buffers: Vec<AudioBuffer>,
+    channels: u32,
+    frames: usize,
+    sample_rate: u32,
+}
+
+impl BufferPool {
+    /// Create a pool pre-loaded with `capacity` silent buffers.
+    pub fn new(capacity: usize, channels: u32, frames: usize, sample_rate: u32) -> Self {
+        let buffers = (0..capacity)
+            .map(|_| AudioBuffer::silence(channels, frames, sample_rate))
+            .collect();
+        Self {
+            buffers,
+            channels,
+            frames,
+            sample_rate,
+        }
+    }
+
+    /// Take a buffer from the pool. If the pool is empty, allocates a new one.
+    pub fn acquire(&mut self) -> AudioBuffer {
+        self.buffers.pop().unwrap_or_else(|| {
+            AudioBuffer::silence(self.channels, self.frames, self.sample_rate)
+        })
+    }
+
+    /// Return a buffer to the pool for reuse. Silences it before storing.
+    pub fn release(&mut self, mut buf: AudioBuffer) {
+        buf.samples.fill(0.0);
+        self.buffers.push(buf);
+    }
+
+    /// Number of available buffers in the pool.
+    pub fn available(&self) -> usize {
+        self.buffers.len()
+    }
 }
 
 #[cfg(test)]

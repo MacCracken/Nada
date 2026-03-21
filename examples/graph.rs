@@ -21,7 +21,7 @@ impl AudioNode for ToneGenerator {
         1
     }
     fn process(&mut self, _inputs: &[&AudioBuffer], output: &mut AudioBuffer) {
-        for s in &mut output.samples {
+        for s in output.samples_mut() {
             *s = (self.phase as f32).sin() * 0.5;
             self.phase += 2.0 * std::f64::consts::PI * self.freq as f64 / self.sample_rate;
         }
@@ -45,8 +45,8 @@ impl AudioNode for GainNode {
     }
     fn process(&mut self, inputs: &[&AudioBuffer], output: &mut AudioBuffer) {
         if let Some(input) = inputs.first() {
-            for (i, s) in output.samples.iter_mut().enumerate() {
-                *s = input.samples.get(i).copied().unwrap_or(0.0) * self.gain;
+            for (i, s) in output.samples_mut().iter_mut().enumerate() {
+                *s = input.samples().get(i).copied().unwrap_or(0.0) * self.gain;
             }
         }
     }
@@ -93,7 +93,7 @@ fn main() {
             println!(
                 "Buffer {}: {} frames, peak={:.3}, rms={:.3}",
                 i,
-                output.frames,
+                output.frames(),
                 output.peak(),
                 output.rms()
             );

@@ -27,6 +27,14 @@ pub struct Oscillator {
 }
 
 impl Oscillator {
+    /// Validate that the oscillator is properly configured.
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.sample_rate <= 0.0 {
+            return Err("sample_rate must be > 0.0");
+        }
+        Ok(())
+    }
+
     /// Create a new oscillator.
     pub fn new(waveform: Waveform, sample_rate: u32) -> Self {
         Self {

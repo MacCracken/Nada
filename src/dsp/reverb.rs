@@ -147,8 +147,13 @@ pub struct Reverb {
 }
 
 impl Reverb {
-    /// Create a new reverb processor.
-    pub fn new(params: ReverbParams, sample_rate: u32) -> Self {
+    /// Create a new reverb processor. Returns an error if parameters are invalid.
+    pub fn new(params: ReverbParams, sample_rate: u32) -> crate::Result<Self> {
+        params.validate().map_err(|reason| crate::NadaError::InvalidParameter {
+            name: "ReverbParams".into(),
+            value: String::new(),
+            reason: reason.into(),
+        })?;
         let combs_l: Vec<CombFilter> = COMB_DELAYS
             .iter()
             .map(|&d| CombFilter::new(scale_delay(d, sample_rate)))
@@ -174,7 +179,7 @@ impl Reverb {
             params: params.clone(),
         };
         reverb.update_params(&params);
-        reverb
+        Ok(reverb)
     }
 
     /// Process an audio buffer in-place.
@@ -192,6 +197,9 @@ impl Reverb {
                 let input = buf.samples[frame];
                 let reverb_out = self.process_mono(input);
                 buf.samples[frame] = input * dry + reverb_out * wet;
+                if !buf.samples[frame].is_finite() {
+                    buf.samples[frame] = 0.0;
+                }
             } else {
                 // Stereo or multichannel: use L/R paths
                 let l_idx = frame * ch;
@@ -202,6 +210,12 @@ impl Reverb {
                 let (rev_l, rev_r) = self.process_stereo(input_l, input_r);
                 buf.samples[l_idx] = input_l * dry + rev_l * wet;
                 buf.samples[r_idx] = input_r * dry + rev_r * wet;
+                if !buf.samples[l_idx].is_finite() {
+                    buf.samples[l_idx] = 0.0;
+                }
+                if !buf.samples[r_idx].is_finite() {
+                    buf.samples[r_idx] = 0.0;
+                }
 
                 // Additional channels pass through unchanged
             }
@@ -285,7 +299,7 @@ mod tests {
 
     #[test]
     fn silence_in_silence_out() {
-        let mut reverb = Reverb::new(ReverbParams::default(), 44100);
+        let mut reverb = Reverb::new(ReverbParams::default(), 44100).unwrap();
         let mut buf = AudioBuffer::silence(2, 4096, 44100);
         reverb.process(&mut buf);
         assert!(buf.peak() < f32::EPSILON);
@@ -300,7 +314,8 @@ mod tests {
                 mix: 1.0,
             },
             44100,
-        );
+        )
+        .unwrap();
 
         // Impulse at frame 0
         let mut samples = vec![0.0f32; 44100 * 2]; // 1 second stereo
@@ -331,7 +346,8 @@ mod tests {
                 mix: 1.0,
             },
             44100,
-        );
+        )
+        .unwrap();
 
         let mut samples = vec![0.0f32; 44100 * 2];
         samples[0] = 1.0;
@@ -353,7 +369,7 @@ mod tests {
 
     #[test]
     fn mono_processing() {
-        let mut reverb = Reverb::new(ReverbParams::default(), 44100);
+        let mut reverb = Reverb::new(ReverbParams::default(), 44100).unwrap();
         let mut samples = vec![0.0f32; 4096];
         samples[0] = 1.0;
         let mut buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
@@ -370,7 +386,8 @@ mod tests {
                 mix: 1.0,
             },
             44100,
-        );
+        )
+        .unwrap();
 
         // Feed an impulse
         let mut samples = vec![0.0f32; 2048];
@@ -390,7 +407,7 @@ mod tests {
     fn different_sample_rates() {
         // Should not panic at various sample rates
         for sr in [22050, 44100, 48000, 96000] {
-            let mut reverb = Reverb::new(ReverbParams::default(), sr);
+            let mut reverb = Reverb::new(ReverbParams::default(), sr).unwrap();
             let mut buf = AudioBuffer::silence(2, 1024, sr);
             buf.samples[0] = 1.0;
             buf.samples[1] = 1.0;

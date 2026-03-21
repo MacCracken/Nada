@@ -22,7 +22,7 @@ fn bench_noise_gate_1s(c: &mut Criterion) {
 
 fn bench_compress_legacy_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
-    let mut comp = Compressor::new(CompressorParams::default(), 44100);
+    let mut comp = Compressor::new(CompressorParams::default(), 44100).unwrap();
     c.bench_function("compress_stereo_1s", |bench| {
         bench.iter(|| comp.process(&mut buf))
     });
@@ -107,7 +107,8 @@ fn bench_compressor_1s(c: &mut Criterion) {
             knee_db: 6.0,
         },
         44100,
-    );
+    )
+    .unwrap();
     c.bench_function("compressor_stereo_1s", |bench| {
         bench.iter(|| comp.process(&mut buf))
     });
@@ -122,7 +123,8 @@ fn bench_reverb_1s(c: &mut Criterion) {
             mix: 0.3,
         },
         44100,
-    );
+    )
+    .unwrap();
     c.bench_function("reverb_stereo_1s", |bench| {
         bench.iter(|| reverb.process(&mut buf))
     });
@@ -145,7 +147,8 @@ fn bench_limiter_1s(c: &mut Criterion) {
             knee_db: 3.0,
         },
         44100,
-    );
+    )
+    .unwrap();
     c.bench_function("limiter_stereo_1s", |bench| {
         bench.iter(|| limiter.process(&mut buf))
     });

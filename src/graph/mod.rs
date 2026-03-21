@@ -149,7 +149,9 @@ impl ExecutionPlan {
 pub struct GraphProcessor {
     current_plan: Option<ExecutionPlan>,
     pending_plan: Arc<Mutex<Option<ExecutionPlan>>>,
-    node_outputs: HashMap<NodeId, AudioBuffer>,
+    node_outputs: Vec<Option<AudioBuffer>>,
+    /// Pre-allocated scratch for gathering input buffers.
+    input_scratch: Vec<AudioBuffer>,
     channels: u32,
     sample_rate: u32,
     buffer_frames: usize,
@@ -160,7 +162,8 @@ impl GraphProcessor {
         Self {
             current_plan: None,
             pending_plan: Arc::new(Mutex::new(None)),
-            node_outputs: HashMap::new(),
+            node_outputs: Vec::new(),
+            input_scratch: Vec::new(),
             channels,
             sample_rate,
             buffer_frames,
@@ -186,8 +189,16 @@ impl GraphProcessor {
                 nodes = new_plan.order.len(),
                 "GraphProcessor: swapped to new plan"
             );
-            self.current_plan = Some(new_plan);
+            // Pre-allocate output slots based on max node ID
+            let max_id = new_plan
+                .order
+                .iter()
+                .map(|id| id.0 as usize)
+                .max()
+                .unwrap_or(0);
             self.node_outputs.clear();
+            self.node_outputs.resize_with(max_id + 1, || None);
+            self.current_plan = Some(new_plan);
         }
 
         let plan = self.current_plan.as_mut()?;
@@ -195,18 +206,17 @@ impl GraphProcessor {
         // Process nodes in topological order
         let order: Vec<NodeId> = plan.order.clone();
         for &node_id in &order {
-            // Gather inputs
-            let inputs: Vec<AudioBuffer> = plan
-                .input_map
-                .get(&node_id)
-                .map(|ids| {
-                    ids.iter()
-                        .filter_map(|id| self.node_outputs.get(id).cloned())
-                        .collect()
-                })
-                .unwrap_or_default();
+            // Gather inputs using pre-allocated scratch
+            self.input_scratch.clear();
+            if let Some(ids) = plan.input_map.get(&node_id) {
+                for id in ids {
+                    if let Some(Some(buf)) = self.node_outputs.get(id.0 as usize) {
+                        self.input_scratch.push(buf.clone());
+                    }
+                }
+            }
 
-            let input_refs: Vec<&AudioBuffer> = inputs.iter().collect();
+            let input_refs: Vec<&AudioBuffer> = self.input_scratch.iter().collect();
 
             let mut output =
                 AudioBuffer::silence(self.channels, self.buffer_frames, self.sample_rate);
@@ -215,11 +225,17 @@ impl GraphProcessor {
                 node.process(&input_refs, &mut output);
             }
 
-            self.node_outputs.insert(node_id, output);
+            let idx = node_id.0 as usize;
+            if idx < self.node_outputs.len() {
+                self.node_outputs[idx] = Some(output);
+            }
         }
 
         // Return the last node's output
-        order.last().and_then(|id| self.node_outputs.get(id))
+        order
+            .last()
+            .and_then(|id| self.node_outputs.get(id.0 as usize))
+            .and_then(|opt| opt.as_ref())
     }
 
     /// Whether the current plan's last node is finished.

@@ -19,7 +19,7 @@ fn main() {
 
     // Mix
     let mut mixed = mix(&[&vocal_buf, &drum_buf]).unwrap();
-    println!("Mixed: {} frames, peak={:.3}", mixed.frames, mixed.peak());
+    println!("Mixed: {} frames, peak={:.3}", mixed.frames(), mixed.peak());
 
     // EQ: cut low rumble, boost presence
     let mut eq = ParametricEq::new(
@@ -55,7 +55,8 @@ fn main() {
             knee_db: 6.0,
         },
         sr,
-    );
+    )
+    .unwrap();
     comp.process(&mut mixed);
 
     // Normalize
@@ -63,7 +64,7 @@ fn main() {
 
     // Analyze
     let lufs = analysis::loudness_lufs(&mixed);
-    let spec = analysis::spectrum_fft(&mixed, 4096);
+    let spec = analysis::spectrum_fft(&mixed, 4096).unwrap();
     println!("Output: peak={:.3}, LUFS={:.1}", mixed.peak(), lufs);
     println!(
         "Dominant freq: {:.1} Hz",

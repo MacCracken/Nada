@@ -8,6 +8,7 @@
 
 use crate::buffer::AudioBuffer;
 use crate::dsp::biquad::{BiquadCoeffs, FilterType};
+use crate::error::NadaError;
 
 /// Full EBU R128 loudness measurement result.
 #[derive(Debug, Clone)]
@@ -23,7 +24,18 @@ pub struct R128Loudness {
 }
 
 /// Measure EBU R128 integrated loudness.
-pub fn measure_r128(buf: &AudioBuffer) -> R128Loudness {
+///
+/// # Errors
+///
+/// Returns `NadaError::Dsp` if the buffer is empty or has zero channels.
+pub fn measure_r128(buf: &AudioBuffer) -> crate::Result<R128Loudness> {
+    if buf.samples.is_empty() {
+        return Err(NadaError::Dsp("cannot measure R128 on empty buffer".into()));
+    }
+    if buf.channels == 0 {
+        return Err(NadaError::Dsp("cannot measure R128 with zero channels".into()));
+    }
+
     let sr = buf.sample_rate;
     let ch = buf.channels as usize;
 
@@ -62,12 +74,12 @@ pub fn measure_r128(buf: &AudioBuffer) -> R128Loudness {
     }
 
     if block_loudness.is_empty() {
-        return R128Loudness {
+        return Ok(R128Loudness {
             integrated_lufs: f32::NEG_INFINITY,
             range_lu: 0.0,
             short_term_lufs: f32::NEG_INFINITY,
             momentary_lufs: f32::NEG_INFINITY,
-        };
+        });
     }
 
     // Step 3: Absolute gate at -70 LUFS
@@ -78,12 +90,12 @@ pub fn measure_r128(buf: &AudioBuffer) -> R128Loudness {
         .collect();
 
     if above_abs_gate.is_empty() {
-        return R128Loudness {
+        return Ok(R128Loudness {
             integrated_lufs: f32::NEG_INFINITY,
             range_lu: 0.0,
             short_term_lufs: *block_loudness.last().unwrap_or(&f32::NEG_INFINITY),
             momentary_lufs: *block_loudness.last().unwrap_or(&f32::NEG_INFINITY),
-        };
+        });
     }
 
     // Ungated loudness (above absolute gate)
@@ -118,12 +130,12 @@ pub fn measure_r128(buf: &AudioBuffer) -> R128Loudness {
     // LRA: difference between 95th and 10th percentile of gated blocks
     let range_lu = compute_lra(&above_rel_gate);
 
-    R128Loudness {
+    Ok(R128Loudness {
         integrated_lufs,
         range_lu,
         short_term_lufs,
         momentary_lufs,
-    }
+    })
 }
 
 /// Apply K-weighting filter (high shelf + high pass).
@@ -191,7 +203,7 @@ mod tests {
     #[test]
     fn silence_r128() {
         let buf = AudioBuffer::silence(2, 48000, 48000);
-        let r = measure_r128(&buf);
+        let r = measure_r128(&buf).unwrap();
         assert!(r.integrated_lufs < -60.0 || r.integrated_lufs.is_infinite());
     }
 
@@ -203,7 +215,7 @@ mod tests {
             .map(|i| 0.5 * (2.0 * std::f32::consts::PI * 1000.0 * (i / 2) as f32 / sr as f32).sin())
             .collect();
         let buf = AudioBuffer::from_interleaved(samples, 2, sr).unwrap();
-        let r = measure_r128(&buf);
+        let r = measure_r128(&buf).unwrap();
 
         // A -6 dBFS sine should measure around -9 to -12 LUFS
         assert!(r.integrated_lufs > -20.0, "LUFS={}", r.integrated_lufs);
@@ -237,7 +249,7 @@ mod tests {
             })
             .collect();
         let buf = AudioBuffer::from_interleaved(samples, 1, sr).unwrap();
-        let r = measure_r128(&buf);
+        let r = measure_r128(&buf).unwrap();
         assert!(r.range_lu >= 0.0);
     }
 }

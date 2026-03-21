@@ -124,6 +124,7 @@ impl GraphicEqSettings {
 /// Wraps [`ParametricEq`] with fixed ISO center frequencies at Q=1.4.
 /// Provides preset loading, per-band gain control, and efficient
 /// flat-detection bypass.
+#[derive(Debug, Clone)]
 pub struct GraphicEq {
     inner: ParametricEq,
     settings: GraphicEqSettings,

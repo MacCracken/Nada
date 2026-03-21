@@ -68,14 +68,19 @@ pub struct Compressor {
 }
 
 impl Compressor {
-    /// Create a new compressor.
-    pub fn new(params: CompressorParams, sample_rate: u32) -> Self {
-        Self {
+    /// Create a new compressor. Returns an error if parameters are invalid.
+    pub fn new(params: CompressorParams, sample_rate: u32) -> crate::Result<Self> {
+        params.validate().map_err(|reason| crate::NadaError::InvalidParameter {
+            name: "CompressorParams".into(),
+            value: String::new(),
+            reason: reason.into(),
+        })?;
+        Ok(Self {
             params,
             envelope_db: -120.0,
             gain_reduction_db: 0.0,
             sample_rate,
-        }
+        })
     }
 
     /// Process an audio buffer in-place.
@@ -201,7 +206,7 @@ mod tests {
             ratio: 1.0,
             ..Default::default()
         };
-        let mut comp = Compressor::new(params, 44100);
+        let mut comp = Compressor::new(params, 44100).unwrap();
         let mut buf = make_sine(1.0, 4096);
         let original = buf.samples.clone();
         comp.process(&mut buf);
@@ -218,7 +223,7 @@ mod tests {
             makeup_gain_db: 0.0,
             knee_db: 0.0,
         };
-        let mut comp = Compressor::new(params, 44100);
+        let mut comp = Compressor::new(params, 44100).unwrap();
         // -20 dBFS signal (amplitude ~0.1)
         let mut buf = make_sine(0.1, 4096);
         let original_rms = buf.rms();
@@ -240,7 +245,7 @@ mod tests {
             makeup_gain_db: 0.0,
             knee_db: 0.0,
         };
-        let mut comp = Compressor::new(params, 44100);
+        let mut comp = Compressor::new(params, 44100).unwrap();
         // 0 dBFS signal (amplitude 1.0) — well above -20 dB threshold
         let mut buf = make_sine(1.0, 4096);
         let original_rms = buf.rms();
@@ -264,7 +269,7 @@ mod tests {
             makeup_gain_db: 12.0,
             knee_db: 0.0,
         };
-        let mut comp = Compressor::new(params, 44100);
+        let mut comp = Compressor::new(params, 44100).unwrap();
         let mut buf = make_sine(0.1, 4096);
         let original_rms = buf.rms();
         comp.process(&mut buf);
@@ -283,7 +288,7 @@ mod tests {
             makeup_gain_db: 0.0,
             knee_db: 12.0,
         };
-        let mut comp = Compressor::new(params, 44100);
+        let mut comp = Compressor::new(params, 44100).unwrap();
         let mut buf = make_sine(1.0, 4096);
         comp.process(&mut buf);
         assert!(buf.samples.iter().all(|s| s.is_finite()));
@@ -292,7 +297,7 @@ mod tests {
 
     #[test]
     fn reset_clears_state() {
-        let mut comp = Compressor::new(CompressorParams::default(), 44100);
+        let mut comp = Compressor::new(CompressorParams::default(), 44100).unwrap();
         let mut buf = make_sine(1.0, 1024);
         comp.process(&mut buf);
         comp.reset();

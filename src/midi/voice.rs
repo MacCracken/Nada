@@ -40,20 +40,20 @@ pub enum VoiceStealMode {
 /// Consumers own synthesis state (oscillator phases, etc.) indexed by voice slot.
 #[derive(Debug, Clone)]
 pub struct Voice {
-    pub state: VoiceState,
-    pub note: u8,
-    pub velocity: u8,
-    pub channel: u8,
+    pub(crate) state: VoiceState,
+    pub(crate) note: u8,
+    pub(crate) velocity: u8,
+    pub(crate) channel: u8,
     /// Amplitude envelope level (0.0–1.0), managed by consumer.
-    pub envelope_level: f32,
+    pub(crate) envelope_level: f32,
     /// Age in process blocks (incremented by `VoiceManager::tick_age`).
-    pub age: u64,
+    pub(crate) age: u64,
     /// Per-note pitch bend (-1.0 to +1.0, 0.0 = no bend).
-    pub pitch_bend: f32,
+    pub(crate) pitch_bend: f32,
     /// Per-note pressure / aftertouch (0.0 to 1.0).
-    pub pressure: f32,
+    pub(crate) pressure: f32,
     /// Per-note brightness (CC#74, 0.0 to 1.0).
-    pub brightness: f32,
+    pub(crate) brightness: f32,
 }
 
 impl Voice {
@@ -71,6 +71,25 @@ impl Voice {
             brightness: 0.0,
         }
     }
+
+    /// Voice state in the synthesis lifecycle.
+    pub fn state(&self) -> VoiceState { self.state }
+    /// MIDI note number.
+    pub fn note(&self) -> u8 { self.note }
+    /// MIDI velocity.
+    pub fn velocity(&self) -> u8 { self.velocity }
+    /// MIDI channel.
+    pub fn channel(&self) -> u8 { self.channel }
+    /// Amplitude envelope level (0.0–1.0).
+    pub fn envelope_level(&self) -> f32 { self.envelope_level }
+    /// Age in process blocks.
+    pub fn age(&self) -> u64 { self.age }
+    /// Per-note pitch bend (-1.0 to +1.0, 0.0 = no bend).
+    pub fn pitch_bend(&self) -> f32 { self.pitch_bend }
+    /// Per-note pressure / aftertouch (0.0 to 1.0).
+    pub fn pressure(&self) -> f32 { self.pressure }
+    /// Per-note brightness (CC#74, 0.0 to 1.0).
+    pub fn brightness(&self) -> f32 { self.brightness }
 
     /// Whether this voice is idle.
     pub fn is_idle(&self) -> bool {
@@ -265,11 +284,11 @@ mod tests {
     fn voice_per_note_cc() {
         let mut voice = Voice::new();
         voice.apply_per_note_cc(74, 0.8);
-        assert!((voice.brightness - 0.8).abs() < f32::EPSILON);
+        assert!((voice.brightness() - 0.8).abs() < f32::EPSILON);
 
         // Non-74 CC should not affect brightness
         voice.apply_per_note_cc(1, 0.5);
-        assert!((voice.brightness - 0.8).abs() < f32::EPSILON);
+        assert!((voice.brightness() - 0.8).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -282,7 +301,7 @@ mod tests {
         assert_eq!(mgr.active_count(), 1);
 
         mgr.note_off(60, 0);
-        assert_eq!(mgr.voice(0).unwrap().state, VoiceState::Releasing);
+        assert_eq!(mgr.voice(0).unwrap().state(), VoiceState::Releasing);
 
         mgr.free_voice(0);
         assert_eq!(mgr.active_count(), 0);
@@ -299,7 +318,7 @@ mod tests {
         // All voices full, should steal oldest (slot 0)
         let idx = mgr.note_on(64, 100, 0);
         assert_eq!(idx, Some(0));
-        assert_eq!(mgr.voice(0).unwrap().note, 64);
+        assert_eq!(mgr.voice(0).unwrap().note(), 64);
     }
 
     #[test]
@@ -324,7 +343,7 @@ mod tests {
         // Should steal lowest (48)
         let idx = mgr.note_on(60, 100, 0);
         assert_eq!(idx, Some(1));
-        assert_eq!(mgr.voice(1).unwrap().note, 60);
+        assert_eq!(mgr.voice(1).unwrap().note(), 60);
     }
 
     #[test]
@@ -366,7 +385,7 @@ mod tests {
         mgr.note_on(60, 100, 0);
         mgr.tick_age();
         mgr.tick_age();
-        assert_eq!(mgr.voice(0).unwrap().age, 2);
-        assert_eq!(mgr.voice(1).unwrap().age, 0); // idle, not ticked
+        assert_eq!(mgr.voice(0).unwrap().age(), 2);
+        assert_eq!(mgr.voice(1).unwrap().age(), 0); // idle, not ticked
     }
 }

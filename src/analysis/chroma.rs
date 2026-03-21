@@ -12,10 +12,13 @@ pub const PITCH_CLASSES: [&str; 12] = [
 #[derive(Debug, Clone)]
 pub struct Chromagram {
     /// Energy per pitch class (0=C, 1=C#, ..., 11=B). Normalized 0–1.
-    pub chroma: [f32; 12],
+    chroma: [f32; 12],
 }
 
 impl Chromagram {
+    /// Energy per pitch class (0=C, 1=C#, ..., 11=B). Normalized 0–1.
+    pub fn chroma(&self) -> &[f32; 12] { &self.chroma }
+
     /// Index of the dominant pitch class.
     pub fn dominant_class(&self) -> usize {
         self.chroma
@@ -37,13 +40,17 @@ impl Chromagram {
 /// Maps FFT bin frequencies to the 12 pitch classes using the relationship:
 /// `pitch_class = round(12 * log2(freq / C0)) mod 12`
 /// where C0 ≈ 16.35 Hz.
-pub fn chromagram(buf: &AudioBuffer, window_size: usize) -> Chromagram {
-    let spec = spectrum_fft(buf, window_size);
+///
+/// # Errors
+///
+/// Returns `NadaError::Dsp` if the underlying FFT computation fails.
+pub fn chromagram(buf: &AudioBuffer, window_size: usize) -> crate::Result<Chromagram> {
+    let spec = spectrum_fft(buf, window_size)?;
     let mut chroma = [0.0f32; 12];
 
     let c0 = 16.3516f32; // C0 frequency
 
-    for (bin, &mag) in spec.magnitudes.iter().enumerate() {
+    for (bin, &mag) in spec.magnitudes().iter().enumerate() {
         let freq = spec.bin_frequency(bin);
         if freq < c0 || freq < 1.0 {
             continue;
@@ -63,7 +70,7 @@ pub fn chromagram(buf: &AudioBuffer, window_size: usize) -> Chromagram {
         }
     }
 
-    Chromagram { chroma }
+    Ok(Chromagram { chroma })
 }
 
 #[cfg(test)]
@@ -78,7 +85,7 @@ mod tests {
             .map(|i| (2.0 * std::f32::consts::PI * 440.0 * i as f32 / sr as f32).sin())
             .collect();
         let buf = AudioBuffer::from_interleaved(samples, 1, sr).unwrap();
-        let c = chromagram(&buf, 4096);
+        let c = chromagram(&buf, 4096).unwrap();
 
         // A440 should map to pitch class A (index 9)
         assert_eq!(
@@ -86,7 +93,7 @@ mod tests {
             "A",
             "Expected A, got {} with chroma {:?}",
             c.dominant_name(),
-            c.chroma
+            c.chroma()
         );
     }
 
@@ -99,7 +106,7 @@ mod tests {
             .map(|i| (2.0 * std::f32::consts::PI * 261.63 * i as f32 / sr as f32).sin())
             .collect();
         let buf = AudioBuffer::from_interleaved(samples, 1, sr).unwrap();
-        let c = chromagram(&buf, 4096);
+        let c = chromagram(&buf, 4096).unwrap();
 
         assert_eq!(c.dominant_name(), "C");
     }
@@ -107,9 +114,9 @@ mod tests {
     #[test]
     fn silence_chromagram() {
         let buf = AudioBuffer::silence(1, 4096, 44100);
-        let c = chromagram(&buf, 4096);
+        let c = chromagram(&buf, 4096).unwrap();
         // All zeros
-        assert!(c.chroma.iter().all(|&v| v == 0.0));
+        assert!(c.chroma().iter().all(|&v| v == 0.0));
     }
 
     #[test]

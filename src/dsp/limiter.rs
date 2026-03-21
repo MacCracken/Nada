@@ -55,13 +55,18 @@ pub struct EnvelopeLimiter {
 }
 
 impl EnvelopeLimiter {
-    /// Create a new limiter.
-    pub fn new(params: LimiterParams, sample_rate: u32) -> Self {
-        Self {
+    /// Create a new limiter. Returns an error if parameters are invalid.
+    pub fn new(params: LimiterParams, sample_rate: u32) -> crate::Result<Self> {
+        params.validate().map_err(|reason| crate::NadaError::InvalidParameter {
+            name: "LimiterParams".into(),
+            value: String::new(),
+            reason: reason.into(),
+        })?;
+        Ok(Self {
             params,
             envelope_db: -120.0,
             sample_rate,
-        }
+        })
     }
 
     /// Process an audio buffer in-place.
@@ -167,7 +172,7 @@ mod tests {
             release_ms: 50.0,
             knee_db: 0.0,
         };
-        let mut limiter = EnvelopeLimiter::new(params, 44100);
+        let mut limiter = EnvelopeLimiter::new(params, 44100).unwrap();
         let mut buf = make_sine(0.5, 4096);
         let original_rms = buf.rms();
         limiter.process(&mut buf);
@@ -184,7 +189,7 @@ mod tests {
             release_ms: 10.0,
             knee_db: 0.0,
         };
-        let mut limiter = EnvelopeLimiter::new(params, 44100);
+        let mut limiter = EnvelopeLimiter::new(params, 44100).unwrap();
         let mut buf = make_sine(1.0, 4096);
         limiter.process(&mut buf);
         let ceiling_lin = db_to_amplitude(-6.0);
@@ -199,7 +204,7 @@ mod tests {
 
     #[test]
     fn output_finite() {
-        let mut limiter = EnvelopeLimiter::new(LimiterParams::default(), 44100);
+        let mut limiter = EnvelopeLimiter::new(LimiterParams::default(), 44100).unwrap();
         let mut buf = make_sine(2.0, 4096);
         limiter.process(&mut buf);
         assert!(buf.samples.iter().all(|s| s.is_finite()));
@@ -207,7 +212,7 @@ mod tests {
 
     #[test]
     fn reset_clears_state() {
-        let mut limiter = EnvelopeLimiter::new(LimiterParams::default(), 44100);
+        let mut limiter = EnvelopeLimiter::new(LimiterParams::default(), 44100).unwrap();
         let mut buf = make_sine(1.0, 1024);
         limiter.process(&mut buf);
         limiter.reset();
@@ -221,7 +226,7 @@ mod tests {
             release_ms: 10.0,
             knee_db: 6.0, // soft knee
         };
-        let mut limiter = EnvelopeLimiter::new(params, 44100);
+        let mut limiter = EnvelopeLimiter::new(params, 44100).unwrap();
         let mut buf = make_sine(1.0, 4096);
         limiter.process(&mut buf);
         let ceiling_lin = db_to_amplitude(-6.0);
@@ -236,7 +241,7 @@ mod tests {
             release_ms: 10.0,
             knee_db: 0.0,
         };
-        let mut limiter = EnvelopeLimiter::new(params, 44100);
+        let mut limiter = EnvelopeLimiter::new(params, 44100).unwrap();
         let mut buf = make_sine(1.0, 4096);
         limiter.process(&mut buf);
         // Should have applied gain reduction
@@ -245,7 +250,7 @@ mod tests {
 
     #[test]
     fn set_params_updates() {
-        let mut limiter = EnvelopeLimiter::new(LimiterParams::default(), 44100);
+        let mut limiter = EnvelopeLimiter::new(LimiterParams::default(), 44100).unwrap();
         limiter.set_params(LimiterParams {
             ceiling_db: -3.0,
             release_ms: 100.0,
@@ -263,7 +268,7 @@ mod tests {
             release_ms: 10.0,
             knee_db: 0.0,
         };
-        let mut limiter = EnvelopeLimiter::new(params, 44100);
+        let mut limiter = EnvelopeLimiter::new(params, 44100).unwrap();
         let samples: Vec<f32> = (0..8192)
             .map(|i| (2.0 * std::f32::consts::PI * 440.0 * (i / 2) as f32 / 44100.0).sin())
             .collect();

@@ -4,26 +4,32 @@
 use std::arch::aarch64::*;
 
 pub fn add_buffers(dst: &mut [f32], src: &[f32]) {
+    // SAFETY: NEON is always available on aarch64; calling the matching target_feature(enable="neon") function.
     unsafe { add_buffers_neon(dst, src) };
 }
 
 pub fn apply_gain(samples: &mut [f32], gain: f32) {
+    // SAFETY: NEON is always available on aarch64; calling the matching target_feature(enable="neon") function.
     unsafe { apply_gain_neon(samples, gain) };
 }
 
 pub fn clamp(samples: &mut [f32], min: f32, max: f32) {
+    // SAFETY: NEON is always available on aarch64; calling the matching target_feature(enable="neon") function.
     unsafe { clamp_neon(samples, min, max) };
 }
 
 pub fn peak_abs(samples: &[f32]) -> f32 {
+    // SAFETY: NEON is always available on aarch64; calling the matching target_feature(enable="neon") function.
     unsafe { peak_abs_neon(samples) }
 }
 
 pub fn sum_of_squares(samples: &[f32]) -> f64 {
+    // SAFETY: NEON is always available on aarch64; calling the matching target_feature(enable="neon") function.
     unsafe { sum_of_squares_neon(samples) }
 }
 
 pub fn noise_gate(samples: &mut [f32], threshold: f32) {
+    // SAFETY: NEON is always available on aarch64; calling the matching target_feature(enable="neon") function.
     unsafe { noise_gate_neon(samples, threshold) };
 }
 
@@ -43,6 +49,7 @@ pub fn f32_to_i16(src: &[f32], dst: &mut [i16]) {
 }
 
 pub fn weighted_sum(samples: &[f32], weights: &[f32]) -> (f32, f32) {
+    // SAFETY: NEON is always available on aarch64; calling the matching target_feature(enable="neon") function.
     unsafe { weighted_sum_neon(samples, weights) }
 }
 
@@ -55,6 +62,8 @@ unsafe fn add_buffers_neon(dst: &mut [f32], src: &[f32]) {
     let chunks = len / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. NEON is always available on aarch64.
+        // Storing to slice with bounds checked by loop range.
         unsafe {
             let a = vld1q_f32(dst.as_ptr().add(off));
             let b = vld1q_f32(src.as_ptr().add(off));
@@ -69,10 +78,13 @@ unsafe fn add_buffers_neon(dst: &mut [f32], src: &[f32]) {
 #[cfg(target_arch = "aarch64")]
 #[target_feature(enable = "neon")]
 unsafe fn apply_gain_neon(samples: &mut [f32], gain: f32) {
+    // SAFETY: NEON intrinsic to broadcast a scalar; no memory access. NEON is always available on aarch64.
     let g = unsafe { vdupq_n_f32(gain) };
     let chunks = samples.len() / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. NEON is always available on aarch64.
+        // Storing to slice with bounds checked by loop range.
         unsafe {
             let a = vld1q_f32(samples.as_ptr().add(off));
             vst1q_f32(samples.as_mut_ptr().add(off), vmulq_f32(a, g));
@@ -86,11 +98,15 @@ unsafe fn apply_gain_neon(samples: &mut [f32], gain: f32) {
 #[cfg(target_arch = "aarch64")]
 #[target_feature(enable = "neon")]
 unsafe fn clamp_neon(samples: &mut [f32], min_val: f32, max_val: f32) {
+    // SAFETY: NEON intrinsic to broadcast a scalar; no memory access. NEON is always available on aarch64.
     let vmin = unsafe { vdupq_n_f32(min_val) };
+    // SAFETY: NEON intrinsic to broadcast a scalar; no memory access. NEON is always available on aarch64.
     let vmax = unsafe { vdupq_n_f32(max_val) };
     let chunks = samples.len() / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. NEON is always available on aarch64.
+        // Storing to slice with bounds checked by loop range.
         unsafe {
             let a = vld1q_f32(samples.as_ptr().add(off));
             let clamped = vminq_f32(vmaxq_f32(a, vmin), vmax);
@@ -108,16 +124,19 @@ unsafe fn peak_abs_neon(samples: &[f32]) -> f32 {
     if samples.is_empty() {
         return 0.0;
     }
+    // SAFETY: NEON intrinsic to create zero vector; no memory access. NEON is always available on aarch64.
     let mut vmax = unsafe { vdupq_n_f32(0.0) };
     let chunks = samples.len() / 4;
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. NEON is always available on aarch64.
         unsafe {
             let a = vld1q_f32(samples.as_ptr().add(off));
             let abs_a = vabsq_f32(a);
             vmax = vmaxq_f32(vmax, abs_a);
         }
     }
+    // SAFETY: NEON intrinsic to reduce vector to scalar max; no memory access. NEON is always available on aarch64.
     let mut result = unsafe { vmaxvq_f32(vmax) };
     for i in (chunks * 4)..samples.len() {
         result = result.max(samples[i].abs());
@@ -129,20 +148,25 @@ unsafe fn peak_abs_neon(samples: &[f32]) -> f32 {
 #[target_feature(enable = "neon")]
 unsafe fn sum_of_squares_neon(samples: &[f32]) -> f64 {
     let mut total = 0.0f64;
+    // SAFETY: NEON intrinsic to create zero vector; no memory access. NEON is always available on aarch64.
     let mut acc = unsafe { vdupq_n_f32(0.0) };
     let chunks = samples.len() / 4;
 
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. NEON is always available on aarch64.
         unsafe {
             let a = vld1q_f32(samples.as_ptr().add(off));
             acc = vmlaq_f32(acc, a, a);
         }
         if (i + 1) % 256 == 0 {
+            // SAFETY: NEON intrinsic to reduce vector to scalar sum; no memory access.
             total += unsafe { vaddvq_f32(acc) } as f64;
+            // SAFETY: NEON intrinsic to create zero vector; no memory access.
             acc = unsafe { vdupq_n_f32(0.0) };
         }
     }
+    // SAFETY: NEON intrinsic to reduce vector to scalar sum; no memory access.
     total += unsafe { vaddvq_f32(acc) } as f64;
 
     for i in (chunks * 4)..samples.len() {
@@ -155,12 +179,16 @@ unsafe fn sum_of_squares_neon(samples: &[f32]) -> f64 {
 #[cfg(target_arch = "aarch64")]
 #[target_feature(enable = "neon")]
 unsafe fn noise_gate_neon(samples: &mut [f32], threshold: f32) {
+    // SAFETY: NEON intrinsic to broadcast a scalar; no memory access. NEON is always available on aarch64.
     let thresh = unsafe { vdupq_n_f32(threshold) };
+    // SAFETY: NEON intrinsic to create zero vector; no memory access. NEON is always available on aarch64.
     let zero = unsafe { vdupq_n_f32(0.0) };
     let chunks = samples.len() / 4;
 
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. NEON is always available on aarch64.
+        // Storing to slice with bounds checked by loop range.
         unsafe {
             let a = vld1q_f32(samples.as_ptr().add(off));
             let abs_a = vabsq_f32(a);
@@ -181,11 +209,14 @@ unsafe fn noise_gate_neon(samples: &mut [f32], threshold: f32) {
 unsafe fn weighted_sum_neon(samples: &[f32], weights: &[f32]) -> (f32, f32) {
     let len = samples.len().min(weights.len());
     let chunks = len / 4;
+    // SAFETY: NEON intrinsic to create zero vector; no memory access. NEON is always available on aarch64.
     let mut acc_sum = unsafe { vdupq_n_f32(0.0) };
+    // SAFETY: NEON intrinsic to create zero vector; no memory access. NEON is always available on aarch64.
     let mut acc_wt = unsafe { vdupq_n_f32(0.0) };
 
     for i in 0..chunks {
         let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. NEON is always available on aarch64.
         unsafe {
             let s = vld1q_f32(samples.as_ptr().add(off));
             let w = vld1q_f32(weights.as_ptr().add(off));
@@ -194,7 +225,9 @@ unsafe fn weighted_sum_neon(samples: &[f32], weights: &[f32]) -> (f32, f32) {
         }
     }
 
+    // SAFETY: NEON intrinsic to reduce vector to scalar sum; no memory access.
     let mut total_sum = unsafe { vaddvq_f32(acc_sum) };
+    // SAFETY: NEON intrinsic to reduce vector to scalar sum; no memory access.
     let mut total_wt = unsafe { vaddvq_f32(acc_wt) };
     for i in (chunks * 4)..len {
         total_sum += samples[i] * weights[i];

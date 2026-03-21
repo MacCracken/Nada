@@ -48,7 +48,7 @@
 //! let mut comp = Compressor::new(CompressorParams {
 //!     threshold_db: -18.0, ratio: 4.0, attack_ms: 10.0, release_ms: 100.0,
 //!     makeup_gain_db: 3.0, knee_db: 6.0,
-//! }, 44100);
+//! }, 44100).unwrap();
 //! comp.process(&mut mixed);
 //! dsp::normalize(&mut mixed, 0.95);
 //!
@@ -67,8 +67,8 @@
 //!
 //! // From raw samples
 //! let buf = AudioBuffer::from_interleaved(vec![0.5; 2048], 2, 44100).unwrap();
-//! assert_eq!(buf.channels, 2);
-//! assert_eq!(buf.frames, 1024);
+//! assert_eq!(buf.channels(), 2);
+//! assert_eq!(buf.frames(), 1024);
 //!
 //! // Format conversion
 //! let i16_data: Vec<i16> = vec![16384; 1024];
@@ -99,7 +99,7 @@
 //! lp.process(&mut buf);
 //!
 //! // Reverb
-//! let mut reverb = Reverb::new(ReverbParams { room_size: 0.6, damping: 0.4, mix: 0.3 }, 44100);
+//! let mut reverb = Reverb::new(ReverbParams { room_size: 0.6, damping: 0.4, mix: 0.3 }, 44100).unwrap();
 //! reverb.process(&mut buf);
 //!
 //! // Panning
@@ -125,7 +125,7 @@
 //! ).unwrap();
 //!
 //! // FFT spectrum (radix-2, O(n log n))
-//! let spec = spectrum_fft(&buf, 4096);
+//! let spec = spectrum_fft(&buf, 4096).unwrap();
 //! println!("Dominant freq: {:?} Hz", spec.dominant_frequency());
 //!
 //! // Dynamics (true peak, crest factor, dynamic range)
@@ -133,15 +133,15 @@
 //! println!("True peak: {:.2} dB, Crest: {:.1} dB", dyn_.max_true_peak_db(), dyn_.mean_crest_factor_db());
 //!
 //! // EBU R128 loudness (K-weighted, gated)
-//! let r128 = measure_r128(&buf);
+//! let r128 = measure_r128(&buf).unwrap();
 //! println!("Integrated: {:.1} LUFS", r128.integrated_lufs);
 //!
 //! // Chromagram (pitch class detection)
-//! let chroma = chromagram(&buf, 4096);
+//! let chroma = chromagram(&buf, 4096).unwrap();
 //! println!("Dominant pitch: {}", chroma.dominant_name());
 //!
 //! // Onset detection
-//! let onsets = detect_onsets(&buf, 2048, 512, 0.3);
+//! let onsets = detect_onsets(&buf, 2048, 512, 0.3).unwrap();
 //! println!("Found {} onsets", onsets.positions.len());
 //! ```
 //!
@@ -179,7 +179,7 @@
 //!     fn num_inputs(&self) -> usize { 0 }
 //!     fn num_outputs(&self) -> usize { 1 }
 //!     fn process(&mut self, _inputs: &[&AudioBuffer], output: &mut AudioBuffer) {
-//!         for s in &mut output.samples {
+//!         for s in output.samples_mut() {
 //!             *s = (self.phase as f32).sin() * 0.5;
 //!             self.phase += 2.0 * std::f64::consts::PI * self.freq as f64 / 44100.0;
 //!         }

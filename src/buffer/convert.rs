@@ -142,6 +142,73 @@ pub fn stereo_to_mono(buf: &AudioBuffer) -> Result<AudioBuffer, NadaError> {
     AudioBuffer::from_interleaved(samples, 1, buf.sample_rate)
 }
 
+/// Convert 24-bit signed integers (stored as i32, only lower 24 bits used) to f32.
+/// Range: [-8388608, 8388607] -> [-1.0, 1.0)
+pub fn i24_to_f32(samples: &[i32]) -> Vec<f32> {
+    samples.iter().map(|&s| {
+        // Sign-extend from 24 bits
+        let extended = (s << 8) >> 8;
+        extended as f32 / 8388608.0
+    }).collect()
+}
+
+/// Convert f32 to 24-bit signed integers (stored as i32).
+/// Input clamped to [-1.0, 1.0].
+pub fn f32_to_i24(samples: &[f32]) -> Vec<i32> {
+    samples.iter().map(|&s| {
+        let clamped = s.clamp(-1.0, 1.0);
+        (clamped * 8388607.0) as i32
+    }).collect()
+}
+
+/// Convert 24-bit packed bytes (3 bytes per sample, little-endian) to f32.
+pub fn i24_packed_to_f32(bytes: &[u8]) -> Vec<f32> {
+    bytes.chunks_exact(3).map(|chunk| {
+        let raw = i32::from(chunk[0]) | (i32::from(chunk[1]) << 8) | (i32::from(chunk[2]) << 16);
+        // Sign-extend from 24 bits
+        let extended = (raw << 8) >> 8;
+        extended as f32 / 8388608.0
+    }).collect()
+}
+
+/// Convert f32 to 24-bit packed bytes (3 bytes per sample, little-endian).
+pub fn f32_to_i24_packed(samples: &[f32]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(samples.len() * 3);
+    for &s in samples {
+        let clamped = s.clamp(-1.0, 1.0);
+        let val = (clamped * 8388607.0) as i32;
+        out.push(val as u8);
+        out.push((val >> 8) as u8);
+        out.push((val >> 16) as u8);
+    }
+    out
+}
+
+/// Convert f64 samples to f32.
+pub fn f64_to_f32(samples: &[f64]) -> Vec<f32> {
+    samples.iter().map(|&s| s as f32).collect()
+}
+
+/// Convert f32 samples to f64.
+pub fn f32_to_f64(samples: &[f32]) -> Vec<f64> {
+    samples.iter().map(|&s| f64::from(s)).collect()
+}
+
+/// Convert unsigned 8-bit PCM to f32.
+/// u8 range [0, 255] maps to f32 range [-1.0, 1.0), centered at 128.
+pub fn u8_to_f32(samples: &[u8]) -> Vec<f32> {
+    samples.iter().map(|&s| (f32::from(s) - 128.0) / 128.0).collect()
+}
+
+/// Convert f32 to unsigned 8-bit PCM.
+/// f32 range [-1.0, 1.0] maps to u8 range [0, 255], centered at 128.
+pub fn f32_to_u8(samples: &[f32]) -> Vec<u8> {
+    samples.iter().map(|&s| {
+        let clamped = s.clamp(-1.0, 1.0);
+        ((clamped * 128.0) + 128.0).clamp(0.0, 255.0) as u8
+    }).collect()
+}
+
 /// Downmix 5.1 surround (6 channels) to stereo using ITU-R BS.775 coefficients.
 ///
 /// Assumed channel order: L, R, C, LFE, Ls, Rs (SMPTE/ITU standard).
@@ -294,5 +361,66 @@ mod tests {
     fn downmix_5_1_rejects_non_6ch() {
         let buf = AudioBuffer::from_interleaved(vec![0.0; 4], 2, 44100).unwrap();
         assert!(downmix_5_1_to_stereo(&buf).is_err());
+    }
+
+    #[test]
+    fn i24_f32_roundtrip() {
+        let original: Vec<i32> = vec![0, 4_194_304, -4_194_304, 8_388_607, -8_388_608];
+        let f32s = i24_to_f32(&original);
+        let back = f32_to_i24(&f32s);
+        for (a, b) in original.iter().zip(back.iter()) {
+            assert!((*a - *b).abs() <= 1, "{a} != {b}");
+        }
+    }
+
+    #[test]
+    fn i24_packed_roundtrip() {
+        let samples = vec![0.0f32, 0.5, -0.5, 1.0, -1.0];
+        let packed = f32_to_i24_packed(&samples);
+        assert_eq!(packed.len(), samples.len() * 3);
+        let back = i24_packed_to_f32(&packed);
+        for (a, b) in samples.iter().zip(back.iter()) {
+            assert!((a - b).abs() < 0.001, "{a} != {b}");
+        }
+    }
+
+    #[test]
+    fn f64_f32_roundtrip() {
+        let original: Vec<f32> = vec![0.0, 0.5, -0.5, 1.0, -1.0];
+        let f64s = f32_to_f64(&original);
+        let back = f64_to_f32(&f64s);
+        for (a, b) in original.iter().zip(back.iter()) {
+            assert!((a - b).abs() < f32::EPSILON, "{a} != {b}");
+        }
+    }
+
+    #[test]
+    fn u8_f32_roundtrip() {
+        let original: Vec<u8> = vec![0, 64, 128, 192, 255];
+        let f32s = u8_to_f32(&original);
+        let back = f32_to_u8(&f32s);
+        for (a, b) in original.iter().zip(back.iter()) {
+            assert!((*a as i16 - *b as i16).abs() <= 1, "{a} != {b}");
+        }
+    }
+
+    #[test]
+    fn u8_center_is_silence() {
+        let f32s = u8_to_f32(&[128]);
+        assert!((f32s[0]).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn f32_to_u8_clamps() {
+        let result = f32_to_u8(&[2.0, -2.0]);
+        assert_eq!(result[0], 255);
+        assert_eq!(result[1], 0);
+    }
+
+    #[test]
+    fn f32_to_i24_clamps() {
+        let result = f32_to_i24(&[2.0, -2.0]);
+        assert_eq!(result[0], 8_388_607);
+        assert_eq!(result[1], -8_388_607);
     }
 }

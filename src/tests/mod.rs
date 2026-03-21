@@ -27,7 +27,8 @@ fn full_pipeline_mix_compress_normalize() {
             knee_db: 0.0,
         },
         44100,
-    );
+    )
+    .unwrap();
     comp.process(&mut mixed);
     dsp::normalize(&mut mixed, 0.95);
 
@@ -128,7 +129,8 @@ fn full_dsp_chain_eq_compress_reverb_delay() {
             knee_db: 0.0,
         },
         sr,
-    );
+    )
+    .unwrap();
     comp.process(&mut buf);
 
     // Reverb
@@ -139,7 +141,8 @@ fn full_dsp_chain_eq_compress_reverb_delay() {
             mix: 0.2,
         },
         sr,
-    );
+    )
+    .unwrap();
     reverb.process(&mut buf);
 
     // Delay
@@ -206,10 +209,10 @@ fn sinc_resample_preserves_frequency() {
     assert_eq!(resampled.sample_rate, 48000);
 
     // Check dominant frequency is still ~440Hz
-    let spec = spectrum_dft(&resampled, 4096);
+    let spec = spectrum_dft(&resampled, 4096).unwrap();
     let dominant = spec.dominant_frequency().unwrap();
     assert!(
-        (dominant - 440.0).abs() < spec.freq_resolution * 2.0,
+        (dominant - 440.0).abs() < spec.freq_resolution() * 2.0,
         "Dominant freq {dominant} should be near 440Hz"
     );
 }
