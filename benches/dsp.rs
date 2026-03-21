@@ -1,4 +1,3 @@
-#[allow(deprecated)]
 use criterion::{Criterion, criterion_group, criterion_main};
 use nada::buffer::AudioBuffer;
 use nada::dsp;
@@ -21,11 +20,11 @@ fn bench_noise_gate_1s(c: &mut Criterion) {
     });
 }
 
-#[allow(deprecated)]
-fn bench_compress_1s(c: &mut Criterion) {
+fn bench_compress_legacy_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
-    c.bench_function("compress_legacy_stereo_1s", |bench| {
-        bench.iter(|| dsp::compress(&mut buf, 0.5, 4.0))
+    let mut comp = Compressor::new(CompressorParams::default(), 44100);
+    c.bench_function("compress_stereo_1s", |bench| {
+        bench.iter(|| comp.process(&mut buf))
     });
 }
 
@@ -155,7 +154,7 @@ fn bench_limiter_1s(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_noise_gate_1s,
-    bench_compress_1s,
+    bench_compress_legacy_1s,
     bench_normalize_1s,
     bench_biquad_lp_1s,
     bench_parametric_eq_3band_1s,

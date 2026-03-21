@@ -27,7 +27,7 @@ proptest! {
     #[test]
     fn mix_produces_finite_output(
         a in arb_audio_buffer(),
-        b in arb_audio_buffer(),
+        _b in arb_audio_buffer(),
     ) {
         // Mix only works if channels/rate match, so use same buffer twice
         let result = crate::buffer::mix(&[&a, &a]);
@@ -47,7 +47,7 @@ proptest! {
     fn clamp_bounds_output(buf in arb_audio_buffer()) {
         let mut buf = buf;
         buf.clamp();
-        prop_assert!(buf.samples.iter().all(|&s| s >= -1.0 && s <= 1.0));
+        prop_assert!(buf.samples.iter().all(|&s| (-1.0..=1.0).contains(&s)));
     }
 
     #[test]

@@ -227,7 +227,7 @@ mod tests {
 
     #[test]
     fn ffi_from_interleaved() {
-        let samples = vec![0.5f32, -0.5, 0.3, -0.3];
+        let samples = [0.5f32, -0.5, 0.3, -0.3];
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 2, 44100) };
         assert!(!buf.is_null());
@@ -254,7 +254,7 @@ mod tests {
         let buf = nada_buffer_silence(1, 4, 44100);
         // Write some data
         unsafe {
-            let samples = vec![0.5f32, -0.5, 0.25, -0.25];
+            let samples = [0.5f32, -0.5, 0.25, -0.25];
             let buf2 = nada_buffer_from_interleaved(samples.as_ptr(), 4, 1, 44100);
             nada_buffer_apply_gain(buf2, 2.0);
             assert!((nada_buffer_peak(buf2) - 1.0).abs() < f32::EPSILON);
@@ -287,7 +287,7 @@ mod tests {
 
     #[test]
     fn ffi_clamp() {
-        let samples = vec![2.0f32, -2.0, 0.5];
+        let samples = [2.0f32, -2.0, 0.5];
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         unsafe {
@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn ffi_noise_gate() {
-        let samples = vec![0.01f32, 0.5, 0.001, 0.8];
+        let samples = [0.01f32, 0.5, 0.001, 0.8];
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         unsafe {
@@ -312,7 +312,7 @@ mod tests {
 
     #[test]
     fn ffi_hard_limiter() {
-        let samples = vec![2.0f32, -2.0, 0.5];
+        let samples = [2.0f32, -2.0, 0.5];
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         unsafe {
@@ -325,7 +325,7 @@ mod tests {
 
     #[test]
     fn ffi_samples_ptr() {
-        let samples = vec![0.5f32, -0.5];
+        let samples = [0.5f32, -0.5];
         let buf =
             unsafe { nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 44100) };
         unsafe {
@@ -354,7 +354,7 @@ mod tests {
 
     #[test]
     fn ffi_zero_sample_rate_returns_null() {
-        let samples = vec![0.5f32; 4];
+        let samples = [0.5f32; 4];
         unsafe {
             let buf = nada_buffer_from_interleaved(samples.as_ptr(), samples.len(), 1, 0);
             assert!(buf.is_null());

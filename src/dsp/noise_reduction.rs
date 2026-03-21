@@ -191,7 +191,7 @@ mod tests {
             .map(|i| {
                 let signal =
                     0.5 * (2.0 * std::f32::consts::PI * 440.0 * i as f32 / sr as f32).sin();
-                let noise = 0.02 * ((i as f32 * 12345.6789).sin());
+                let noise = 0.02 * ((i as f32 * 12_345.679).sin());
                 signal + noise
             })
             .collect();

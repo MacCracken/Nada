@@ -90,9 +90,7 @@ mod tests {
         // Create a buffer with a loud impulse in the middle
         let mut samples = vec![0.0f32; 44100];
         // Impulse at ~0.5 seconds
-        for i in 22050..22150 {
-            samples[i] = 0.9;
-        }
+        samples[22050..22150].fill(0.9);
         let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
         let result = detect_onsets(&buf, 2048, 512, 0.2);
 
@@ -113,12 +111,8 @@ mod tests {
     fn multiple_onsets() {
         // Two impulses separated by silence
         let mut samples = vec![0.0f32; 44100];
-        for i in 10000..10100 {
-            samples[i] = 0.8;
-        }
-        for i in 30000..30100 {
-            samples[i] = 0.8;
-        }
+        samples[10000..10100].fill(0.8);
+        samples[30000..30100].fill(0.8);
         let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
         let result = detect_onsets(&buf, 2048, 512, 0.2);
 
@@ -132,9 +126,7 @@ mod tests {
     #[test]
     fn strengths_match_positions() {
         let mut samples = vec![0.0f32; 44100];
-        for i in 22050..22150 {
-            samples[i] = 0.9;
-        }
+        samples[22050..22150].fill(0.9);
         let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
         let result = detect_onsets(&buf, 2048, 512, 0.2);
 
@@ -148,12 +140,8 @@ mod tests {
     #[test]
     fn high_threshold_fewer_onsets() {
         let mut samples = vec![0.0f32; 44100];
-        for i in 10000..10050 {
-            samples[i] = 0.3; // Soft
-        }
-        for i in 30000..30050 {
-            samples[i] = 0.9; // Loud
-        }
+        samples[10000..10050].fill(0.3); // Soft
+        samples[30000..30050].fill(0.9); // Loud
         let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
 
         let sensitive = detect_onsets(&buf, 2048, 512, 0.1);

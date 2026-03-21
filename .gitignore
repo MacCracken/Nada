@@ -1,5 +1,6 @@
 # Build artifacts
 /target/
+rust_out/
 
 # Editor / IDE
 *.swp
@@ -21,10 +22,25 @@ core.*
 # Coverage
 lcov.info
 tarpaulin-report.html
+tarpaulin-report.json
 coverage/
 
-# Benchmark output
+# Benchmark output (criterion generates large HTML reports)
 criterion/
+
+# Fuzz artifacts
+fuzz/target/
+fuzz/corpus/
+fuzz/artifacts/
+
+# Proptest persistence (regressions are committed, but not other state)
+proptest-regressions/
+
+# cargo-vet downloads
+supply-chain/.cache/
+
+# Claude Code
+.claude/
 
 # Environment / secrets
 .env

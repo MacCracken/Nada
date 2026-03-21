@@ -57,7 +57,7 @@ fn bench_noise_gate(c: &mut Criterion) {
 }
 
 fn bench_i16_to_f32(c: &mut Criterion) {
-    let i16_data: Vec<i16> = (0..88200).map(|i| ((i % 65536) as i16)).collect();
+    let i16_data: Vec<i16> = (0..88200).map(|i| (i % 65536) as i16).collect();
     c.bench_function("simd_i16_to_f32_stereo_1s", |b| {
         b.iter(|| convert::i16_to_f32(&i16_data))
     });

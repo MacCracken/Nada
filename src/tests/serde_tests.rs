@@ -14,7 +14,7 @@ use crate::dsp::lfo::LfoShape;
 use crate::dsp::limiter::LimiterParams;
 use crate::dsp::oscillator::Waveform;
 use crate::dsp::reverb::ReverbParams;
-use crate::midi::routing::{CcMapping, MidiRoute, VelocityCurve};
+use crate::midi::routing::{CcMapping, VelocityCurve};
 use crate::midi::v2::{ControlChangeV2, NoteOnV2, UmpMessageType};
 use crate::midi::{ControlChange, MidiClip, MidiEvent, NoteEvent};
 
