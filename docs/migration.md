@@ -6,7 +6,7 @@ This is the initial release. No migration needed.
 
 ## Planned breaking changes for v0.21.3
 
-The following changes are planned and will require code updates:
+v0.21.3 is a large hardening + API freeze release. The following changes will require code updates:
 
 ### AudioBuffer field encapsulation
 
@@ -24,14 +24,42 @@ let sr = buf.sample_rate();
 let data = buf.samples();
 ```
 
-### Deprecated API removal
+### Other type encapsulation
 
-The following deprecated items will be removed:
+The following types will also have fields made private with read-only accessors:
 
-- `EqBand` struct — use `EqBandConfig` with `ParametricEq`
-- `apply_eq_band()` function — use `ParametricEq::process()`
-- `compress()` free function — use `Compressor` struct
+- `Spectrum` — use `.magnitudes()` instead of `.magnitudes`
+- `Chromagram` — use `.chroma()` instead of `.chroma`
+- `Voice` — state mutation only through `VoiceManager::note_on()`/`note_off()`
+- `MidiRoute` — use validated setters
+- `GraphProcessor` — mutation only through `swap_handle()`
 
-### anyhow dependency removal
+### Analysis functions return Result
 
-`NadaError::Other(anyhow::Error)` will be replaced with `NadaError::Other(Box<dyn std::error::Error + Send + Sync>)`. If you match on this variant, update the pattern.
+Analysis functions that previously returned default values on error will return `Result<T, NadaError>`:
+
+```rust
+// Before (v0.20.3)
+let spec = spectrum_fft(&buf, 4096);        // returns empty Spectrum on error
+
+// After (v0.21.3)
+let spec = spectrum_fft(&buf, 4096)?;       // returns Result<Spectrum, NadaError>
+```
+
+Affected: `spectrum_fft()`, `stft()`, `measure_r128()`
+
+### New SampleFormat variants
+
+`SampleFormat` gains `I24`, `F64`, `U8` variants. This enum is `#[non_exhaustive]`, so exhaustive matches already require a wildcard arm — no breakage expected.
+
+### Sample rate ceiling raised
+
+Maximum accepted sample rate raised from 384kHz to 768kHz.
+
+## Already completed in v0.20.3
+
+The following planned changes were completed before release:
+
+- `anyhow` dependency removed — `NadaError::Other` now uses `Box<dyn std::error::Error + Send + Sync>`
+- `EqBand` struct and `apply_eq_band()` removed — use `EqBandConfig` with `ParametricEq`
+- `compress()` free function removed — use `Compressor` struct

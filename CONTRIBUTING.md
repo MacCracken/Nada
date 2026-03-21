@@ -48,13 +48,16 @@ src/
 ├── lib.rs              # Crate root, public API
 ├── error.rs            # NadaError enum
 ├── buffer/             # AudioBuffer, mixing, resampling, format conversion
-├── dsp/                # Biquad, EQ, reverb, delay, compressor, de-esser
-├── analysis/           # Spectrum (DFT), loudness (LUFS), silence detection
+├── dsp/                # Biquad, EQ, reverb, delay, compressor, limiter, de-esser, panner, oscillator, LFO, envelope, noise reduction
+├── analysis/           # FFT, STFT, EBU R128 loudness, dynamics, chromagram, onset detection, waveform
 ├── clock/              # Sample-accurate transport clock
-├── midi/               # MIDI 1.0/2.0 types, voice management, routing
+├── midi/               # MIDI 1.0/2.0 types, voice management, routing, translation
+├── graph/              # RT-safe audio graph (AudioNode, ExecutionPlan, GraphProcessor)
+├── meter/              # Lock-free peak metering (AtomicU32)
 ├── simd/               # Platform SIMD kernels (SSE2, AVX2, NEON)
-├── capture/            # PipeWire audio capture/output (feature-gated)
-└── tests/              # Integration tests
+├── capture/            # PipeWire audio capture/output, ring-buffer recording (feature-gated)
+├── ffi.rs              # C-compatible AudioBuffer API
+└── tests/              # Integration, property-based, and serde tests
 ```
 
 ## Adding a new DSP effect

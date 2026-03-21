@@ -4,7 +4,7 @@
 
 Buffers, DSP, resampling, mixing, analysis, and capture — in a single crate. The audio equivalent of [ranga](https://crates.io/crates/ranga) (image processing) and [tarang](https://crates.io/crates/tarang) (media framework).
 
-> **Name**: Dhvani (नाद, Sanskrit) — primordial sound, cosmic vibration.
+> **Name**: Dhvani (ध्वनि, Sanskrit) — sound, resonance.
 > Extracted from [shruti](https://github.com/MacCracken/shruti) (DAW) as a standalone, reusable engine.
 
 [![Crates.io](https://img.shields.io/crates/v/dhvani.svg)](https://crates.io/crates/dhvani)
@@ -21,12 +21,14 @@ dhvani is the **audio processing core** — it owns the audio math so nobody els
 |------------|---------|
 | **Audio buffers** | Unified `AudioBuffer` type — f32 interleaved, channel-aware, sample-rate-aware |
 | **Mixing** | Sum N sources with channel/rate validation |
-| **Resampling** | Linear interpolation (sinc in v0.22); 44.1k ↔ 48k ↔ 96k |
-| **DSP effects** | Noise gate, hard limiter, compressor, normalize, EQ (biquad in v0.21) |
-| **Analysis** | DFT spectrum, dominant frequency, LUFS loudness, silence detection |
+| **Resampling** | Linear + sinc (Blackman-Harris window); 44.1k ↔ 48k ↔ 96k |
+| **DSP effects** | Biquad EQ, compressor, limiter, reverb, delay, de-esser, panner, noise gate, normalize |
+| **Analysis** | FFT spectrum, STFT, EBU R128 loudness, dynamics, chromagram, onset detection |
+| **MIDI** | MIDI 1.0/2.0, voice management, clip operations, routing |
 | **Transport clock** | Sample-accurate position, tempo/beats, PTS timestamps for A/V sync |
+| **Audio graph** | RT-safe graph with topological execution and double-buffered plan swap |
 | **PipeWire capture** | Per-source audio capture and output (feature-gated) |
-| **SIMD** | SSE2/AVX2/NEON acceleration for mixing and DSP (v0.22) |
+| **SIMD** | SSE2/AVX2/NEON acceleration for mixing, gain, clamp, peak, RMS |
 
 ---
 
@@ -39,7 +41,7 @@ dhvani = "0.20"
 
 ```rust
 use dhvani::buffer::{AudioBuffer, mix, resample_linear};
-use dhvani::dsp;
+use dhvani::dsp::{self, Compressor, CompressorParams};
 use dhvani::analysis;
 use dhvani::clock::AudioClock;
 
@@ -51,12 +53,16 @@ let drums = AudioBuffer::from_interleaved(samples_b, 2, 44100)?;
 let mut mixed = mix(&[&vocals, &drums])?;
 
 // Process
-dsp::compress(&mut mixed, 0.5, 4.0);
+let mut comp = Compressor::new(CompressorParams {
+    threshold_db: -18.0, ratio: 4.0, attack_ms: 10.0, release_ms: 100.0,
+    makeup_gain_db: 3.0, knee_db: 6.0,
+}, 44100);
+comp.process(&mut mixed);
 dsp::normalize(&mut mixed, 0.95);
 dsp::noise_gate(&mut mixed, 0.01);
 
 // Analyze
-let spectrum = analysis::spectrum_dft(&mixed, 4096);
+let spectrum = analysis::spectrum_fft(&mixed, 4096);
 let loudness = analysis::loudness_lufs(&mixed);
 println!("Peak: {:.2}, LUFS: {:.1}", mixed.peak(), loudness);
 
@@ -122,7 +128,6 @@ println!("Position: {:.2}s, Beat: {:.1}, PTS: {} us",
 
 ```rust
 dsp::noise_gate(&mut buf, 0.01);        // silence below threshold
-dsp::compress(&mut buf, 0.5, 4.0);      // reduce dynamic range
 dsp::hard_limiter(&mut buf, 0.95);       // prevent clipping
 dsp::normalize(&mut buf, 1.0);           // peak normalize
 
@@ -133,7 +138,7 @@ let amp = dsp::db_to_amplitude(-6.0);    // ~0.501
 ### Analysis
 
 ```rust
-let spectrum = analysis::spectrum_dft(&buf, 4096);
+let spectrum = analysis::spectrum_fft(&buf, 4096);
 if let Some(freq) = spectrum.dominant_frequency() {
     println!("Dominant: {:.0} Hz", freq);
 }
@@ -148,7 +153,7 @@ let silent = analysis::is_silent(&buf, -60.0);
 
 ```
 shruti (श्रुति — that which is heard) creates music
-  └── with dhvani (नाद — primordial sound) as its audio engine
+  └── with dhvani (ध्वनि — sound, resonance) as its audio engine
        └── carried by tarang (तरंग — wave) as its media framework
             └── colored by ranga (रंग — color) for visual processing
 ```
@@ -171,11 +176,10 @@ shruti (श्रुति — that which is heard) creates music
 
 | Version | Milestone | Key features |
 |---------|-----------|--------------|
-| **0.20.3** | Foundation | Buffers, mix, resample, DSP, analysis, clock, 40+ tests |
-| **0.21.3** | DSP & conversion | Biquad EQ, reverb, delay, format conversion, sinc resample |
-| **0.22.3** | SIMD & capture | SSE2/AVX2/NEON mixing, PipeWire capture/output |
-| **0.23.3** | Integration | shruti/jalwa/aethersafta adoption, rustfft, buffer pool |
-| **1.0.0** | Stable API | Frozen types, 90%+ coverage, reference-quality DSP |
+| **0.20.3** | Complete engine | Buffers, DSP (EQ/reverb/compressor/delay), MIDI 1.0/2.0, SIMD, FFT, R128, graph, PipeWire, 265+ tests |
+| **0.21.3** | Hardening & API freeze | Safety comments on all unsafe, API encapsulation, 24-bit/f64/u8 formats, panic elimination, buffer pool |
+| **0.22.3** | Testing, SIMD & adoption | SIMD completeness (AVX2/NEON gaps), 90%+ coverage, docs.rs, consumer integration, golden benchmarks |
+| **1.0.0** | Stable | Frozen API, 3+ consumers, reference-quality DSP, full platform parity |
 
 Full details: [docs/development/roadmap.md](docs/development/roadmap.md)
 

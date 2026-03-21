@@ -2,7 +2,7 @@
 
 > Core audio engine — buffers, DSP, resampling, mixing, analysis, and capture.
 >
-> **Name**: Dhvani (नाद, Sanskrit) — primordial sound, cosmic vibration.
+> **Name**: Dhvani (ध्वनि, Sanskrit) — sound, resonance.
 > Extracted from [shruti](https://github.com/MacCracken/shruti) (DAW) as a standalone, reusable crate.
 
 ---
@@ -24,15 +24,57 @@ src/
 ├── lib.rs              Public API, Result type
 ├── error.rs            NadaError enum
 ├── buffer/
-│   └── mod.rs          AudioBuffer, SampleFormat, Layout, mix(), resample_linear()
+│   ├── mod.rs          AudioBuffer, SampleFormat, Layout, mix()
+│   ├── convert.rs      i16/i32/f32, interleaved/planar, mono/stereo, 5.1 downmix
+│   └── resample.rs     Linear + sinc resampling (Blackman-Harris window)
 ├── dsp/
-│   └── mod.rs          noise_gate, hard_limiter, compress, normalize, EQ, dB conversions
+│   ├── mod.rs          noise_gate, hard_limiter, normalize, dB conversions
+│   ├── biquad.rs       BiquadFilter (8 types, Bristow-Johnson cookbook)
+│   ├── eq.rs           ParametricEq (N-band cascade)
+│   ├── compressor.rs   Compressor (envelope follower, soft knee, makeup gain)
+│   ├── limiter.rs      EnvelopeLimiter (brick-wall)
+│   ├── reverb.rs       Reverb (Schroeder/Freeverb, 4 combs + 2 allpasses)
+│   ├── delay.rs        DelayLine + ModulatedDelay (chorus/flanger)
+│   ├── deesser.rs      DeEsser (biquad sidechain)
+│   ├── envelope.rs     ADSR envelope generation
+│   ├── oscillator.rs   PolyBLEP synthesis (sine, saw, square, triangle, noise)
+│   ├── lfo.rs          LFO (6 shapes, sample-and-hold, tempo sync)
+│   ├── pan.rs          StereoPanner (constant-power law)
+│   └── noise_reduction.rs  Spectral noise reduction (STFT gating)
 ├── analysis/
-│   └── mod.rs          spectrum_dft, loudness_lufs, is_silent, Spectrum type
+│   ├── mod.rs          Spectrum type, spectrum_dft, loudness_lufs, is_silent
+│   ├── fft.rs          Radix-2 Cooley-Tukey FFT
+│   ├── loudness.rs     EBU R128 (K-weighting, gating, LRA)
+│   ├── dynamics.rs     True peak (4x), crest factor, dynamic range
+│   ├── chroma.rs       Chromagram (12 pitch classes)
+│   ├── onset.rs        Onset detection (spectral flux)
+│   ├── stft.rs         STFT spectrograms
+│   └── waveform.rs     Downsampled min/max for UI visualization
 ├── clock/
 │   └── mod.rs          AudioClock (position, tempo, beats, PTS, seek)
+├── midi/
+│   ├── mod.rs          NoteEvent, ControlChange, MidiEvent, MidiClip
+│   ├── v2.rs           MIDI 2.0 / UMP types
+│   ├── voice.rs        VoiceManager (16-voice pool, 4 steal modes)
+│   ├── routing.rs      VelocityCurve, MidiRoute, CcMapping
+│   └── translate.rs    MIDI 1.0 ↔ 2.0 conversion
+├── graph/
+│   └── mod.rs          AudioNode trait, Graph, ExecutionPlan, GraphProcessor
+├── meter/
+│   └── mod.rs          PeakMeter, MeterBank (lock-free via AtomicU32)
+├── capture/
+│   ├── mod.rs          CaptureConfig, OutputConfig, AudioDevice
+│   ├── pw.rs           PipeWire bindings (feature-gated)
+│   └── record.rs       RecordManager, LoopRecordManager (ring-buffer)
+├── simd/
+│   ├── mod.rs          Platform dispatch (x86_64/aarch64)
+│   ├── x86.rs          SSE2 + AVX2 kernels
+│   └── aarch64.rs      NEON kernels
+├── ffi.rs              C-compatible nada_buffer_* API
 └── tests/
-    └── mod.rs          Integration tests
+    ├── mod.rs          Integration tests
+    ├── proptest_tests.rs  Property-based tests
+    └── serde_tests.rs  Serialization roundtrip tests
 ```
 
 ---
@@ -40,18 +82,22 @@ src/
 ## Pipeline
 
 ```
-Input (file, capture, synthesis)
+Input (file, capture, synthesis, MIDI)
     │
     ▼
 AudioBuffer (f32 interleaved, channels, sample_rate)
     │
-    ├──▶ DSP chain (EQ → compress → gate → limit)
+    ├──▶ DSP chain (EQ → compress → gate → limit → reverb → delay)
     │
-    ├──▶ Analysis (spectrum, loudness, silence detection)
+    ├──▶ Analysis (FFT spectrum, R128 loudness, dynamics, chromagram, onsets)
+    │
+    ├──▶ Audio graph (topological execution, double-buffered plan swap)
     │
     ├──▶ Mix (sum multiple sources with gain)
     │
-    ├──▶ Resample (44.1k ↔ 48k ↔ 96k)
+    ├──▶ Resample (linear + sinc, 44.1k ↔ 48k ↔ 96k)
+    │
+    ├──▶ Meter (lock-free peak/RMS via atomics)
     │
     ▼
 Output (encode via tarang, play via PipeWire, sync via clock PTS)
@@ -68,7 +114,7 @@ Core sample buffer. Holds f32 interleaved samples with channel count, sample rat
 Sample-accurate transport. Tracks position in samples, converts to seconds/ms/beats/PTS. Tempo-aware for DAW integration. Generates PTS timestamps for A/V sync with aethersafta.
 
 ### Spectrum
-DFT magnitude analysis. Provides frequency bins, dominant frequency detection, and per-bin access. Simple O(n^2) DFT for correctness; rustfft backend planned for production.
+FFT magnitude analysis. Provides frequency bins, dominant frequency detection, and per-bin access. Radix-2 Cooley-Tukey FFT (O(n log n)) for production use; simple DFT available for small windows.
 
 ---
 
