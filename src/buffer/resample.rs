@@ -62,6 +62,7 @@ pub fn resample_sinc(
     let mut out = vec![0.0f32; new_frames * ch];
 
     // Pre-allocate kernel weight buffer for SIMD path
+    #[cfg(feature = "simd")]
     let max_kernel_len = ((half_width as f64 / filter_scale).ceil() as usize) * 2 + 1;
     #[cfg(feature = "simd")]
     let mut kernel_weights = vec![0.0f32; max_kernel_len];
