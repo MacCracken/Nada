@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub use abaco::dsp::{A4_FREQUENCY, A4_MIDI_NOTE, SEMITONES_PER_OCTAVE};
 
 /// Voice state in the synthesis lifecycle.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VoiceState {
     /// Voice is not producing sound.
@@ -106,16 +107,19 @@ impl Voice {
     }
 
     /// Whether this voice is idle.
+    #[inline]
     pub fn is_idle(&self) -> bool {
         self.state == VoiceState::Idle
     }
 
     /// Whether this voice is producing sound (Active or Releasing).
+    #[inline]
     pub fn is_active(&self) -> bool {
         matches!(self.state, VoiceState::Active | VoiceState::Releasing)
     }
 
     /// Frequency in Hz for this voice's note (12-TET, A4=440).
+    #[inline]
     pub fn frequency(&self) -> f64 {
         abaco::dsp::midi_to_freq(self.note as f64)
     }
@@ -138,6 +142,7 @@ impl Default for Voice {
 }
 
 /// Polyphonic voice manager with configurable voice stealing.
+#[must_use]
 #[derive(Debug)]
 pub struct VoiceManager {
     voices: Vec<Voice>,

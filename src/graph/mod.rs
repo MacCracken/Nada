@@ -19,6 +19,7 @@ use crate::buffer::AudioBuffer;
 static NEXT_NODE_ID: AtomicU32 = AtomicU32::new(1);
 
 /// Unique identifier for a node in the audio graph.
+#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NodeId(pub u32);
 
@@ -50,6 +51,8 @@ pub trait AudioNode: Send {
 // ── Connection ──────────────────────────────────────────────────────
 
 /// A directed connection from one node's output to another's input.
+#[must_use]
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct Connection {
     pub from: NodeId,
@@ -61,6 +64,7 @@ pub struct Connection {
 /// Non-real-time audio graph builder.
 ///
 /// Add nodes and connections, then `compile()` to produce an `ExecutionPlan`.
+#[must_use]
 pub struct Graph {
     nodes: HashMap<NodeId, Box<dyn AudioNode>>,
     connections: Vec<Connection>,
@@ -86,6 +90,11 @@ impl Graph {
 
     /// Compile the graph into a topologically sorted execution plan.
     pub fn compile(self) -> Result<ExecutionPlan, &'static str> {
+        tracing::debug!(
+            nodes = self.nodes.len(),
+            connections = self.connections.len(),
+            "Graph::compile: started"
+        );
         let order = topological_sort(&self.nodes, &self.connections)?;
         let mut input_map: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
         for conn in &self.connections {
@@ -119,6 +128,7 @@ impl Default for Graph {
 // ── ExecutionPlan ───────────────────────────────────────────────────
 
 /// Compiled, topologically sorted execution plan.
+#[must_use]
 pub struct ExecutionPlan {
     order: Vec<NodeId>,
     nodes: HashMap<NodeId, Box<dyn AudioNode>>,
@@ -146,6 +156,7 @@ impl ExecutionPlan {
 ///
 /// The RT thread calls `process()` each buffer cycle. New plans are swapped
 /// in from the non-RT thread via `GraphSwapHandle` without blocking.
+#[must_use]
 pub struct GraphProcessor {
     current_plan: Option<ExecutionPlan>,
     pending_plan: Arc<Mutex<Option<ExecutionPlan>>>,
@@ -204,9 +215,11 @@ impl GraphProcessor {
         let plan = self.current_plan.as_mut()?;
 
         // Process nodes in topological order
-        let order: Vec<NodeId> = plan.order.clone();
-        for &node_id in &order {
-            // Gather inputs using pre-allocated scratch
+        for i in 0..plan.order.len() {
+            let node_id = plan.order[i];
+            let idx = node_id.0 as usize;
+
+            // Gather input buffers into scratch (avoids borrow conflict with node_outputs)
             self.input_scratch.clear();
             if let Some(ids) = plan.input_map.get(&node_id) {
                 for id in ids {
@@ -218,24 +231,27 @@ impl GraphProcessor {
 
             let input_refs: Vec<&AudioBuffer> = self.input_scratch.iter().collect();
 
-            let mut output =
-                AudioBuffer::silence(self.channels, self.buffer_frames, self.sample_rate);
+            // Take output buffer from slot (reuse allocation) or create new
+            if idx >= self.node_outputs.len() {
+                self.node_outputs.resize_with(idx + 1, || None);
+            }
+            let mut output = self.node_outputs[idx].take().unwrap_or_else(|| {
+                AudioBuffer::silence(self.channels, self.buffer_frames, self.sample_rate)
+            });
+            output.samples_mut().fill(0.0);
 
             if let Some(node) = plan.nodes.get_mut(&node_id) {
                 node.process(&input_refs, &mut output);
             }
 
-            let idx = node_id.0 as usize;
-            if idx < self.node_outputs.len() {
-                self.node_outputs[idx] = Some(output);
-            }
+            self.node_outputs[idx] = Some(output);
         }
 
         // Return the last node's output
-        order
+        plan.order
             .last()
             .and_then(|id| self.node_outputs.get(id.0 as usize))
-            .and_then(|opt| opt.as_ref())
+            .and_then(|opt: &Option<AudioBuffer>| opt.as_ref())
     }
 
     /// Whether the current plan's last node is finished.
@@ -245,6 +261,7 @@ impl GraphProcessor {
 }
 
 /// Handle for the non-RT thread to swap in new execution plans.
+#[must_use]
 #[derive(Clone)]
 pub struct GraphSwapHandle {
     pending_plan: Arc<Mutex<Option<ExecutionPlan>>>,

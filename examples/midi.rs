@@ -31,13 +31,7 @@ fn main() {
     println!("  After +4 semitones: first note = {}", clip.notes[0].note);
 
     // MIDI 1.0 → 2.0 translation
-    let note = NoteEvent {
-        position: 0,
-        duration: 1000,
-        note: 60,
-        velocity: 100,
-        channel: 0,
-    };
+    let note = NoteEvent::new(0, 1000, 60, 100, 0);
     let v2 = note_event_to_v2(&note);
     println!(
         "\nMIDI 2.0: velocity 7-bit {} → 16-bit {}",
@@ -57,13 +51,7 @@ fn main() {
 
     // Routing with velocity curve
     let route = MidiRoute::new(Some(0), VelocityCurve::Soft, (48, 84));
-    let event = NoteEvent {
-        position: 0,
-        duration: 1000,
-        note: 60,
-        velocity: 127,
-        channel: 0,
-    };
+    let event = NoteEvent::new(0, 1000, 60, 127, 0);
     if let Some(filtered) = route.filter_event(&event) {
         println!(
             "\nRouting: velocity {} → {} (Soft curve)",

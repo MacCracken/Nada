@@ -27,6 +27,14 @@ pub extern "C" fn nada_buffer_silence(
     frames: usize,
     sample_rate: u32,
 ) -> *mut NadaBuffer {
+    if channels == 0 || sample_rate == 0 {
+        tracing::warn!(
+            channels,
+            sample_rate,
+            "nada_buffer_silence: returning null due to invalid params"
+        );
+        return std::ptr::null_mut();
+    }
     let buf = AudioBuffer::silence(channels, frames, sample_rate);
     Box::into_raw(Box::new(NadaBuffer(buf)))
 }
@@ -44,13 +52,26 @@ pub unsafe extern "C" fn nada_buffer_from_interleaved(
     sample_rate: u32,
 ) -> *mut NadaBuffer {
     if samples.is_null() || len == 0 || channels == 0 || sample_rate == 0 {
+        tracing::warn!(
+            samples_null = samples.is_null(),
+            len,
+            channels,
+            sample_rate,
+            "nada_buffer_from_interleaved: returning null due to invalid params"
+        );
         return std::ptr::null_mut();
     }
     // SAFETY: Caller guarantees samples points to len valid f32 values.
     let slice = unsafe { std::slice::from_raw_parts(samples, len) };
     match AudioBuffer::from_interleaved(slice.to_vec(), channels, sample_rate) {
         Ok(buf) => Box::into_raw(Box::new(NadaBuffer(buf))),
-        Err(_) => std::ptr::null_mut(),
+        Err(e) => {
+            tracing::warn!(
+                error = %e,
+                "nada_buffer_from_interleaved: returning null due to construction error"
+            );
+            std::ptr::null_mut()
+        }
     }
 }
 

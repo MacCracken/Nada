@@ -3,6 +3,8 @@
 use crate::buffer::AudioBuffer;
 
 /// Waveform visualization data for a single channel.
+#[must_use]
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct WaveformData {
     /// Per-channel peak data: `channels[ch_index]` is a Vec of (min, max) pairs.

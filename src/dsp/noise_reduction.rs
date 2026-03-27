@@ -15,6 +15,12 @@ const HOP_SIZE: usize = WINDOW_SIZE / 2; // 50% overlap
 /// `strength` controls gate aggressiveness (0.0–1.0, typical: 0.3–0.7).
 /// Higher values remove more noise but may introduce artifacts.
 pub fn noise_reduce(buf: &mut AudioBuffer, strength: f32) {
+    tracing::debug!(
+        frames = buf.frames,
+        channels = buf.channels,
+        strength,
+        "noise_reduce: started"
+    );
     let strength = strength.clamp(0.0, 1.0);
     if buf.frames < WINDOW_SIZE {
         // Too short for STFT — fall back to simple amplitude gate
@@ -60,10 +66,13 @@ fn process_channel(samples: &mut [f32], window: &[f64], strength: f32) {
     let mut avg_magnitude = vec![0.0f64; num_bins];
     let mut frame_count = 0usize;
     let mut pos = 0;
+    // Pre-allocate scratch buffers — reused across both passes
+    let mut real = vec![0.0f64; WINDOW_SIZE];
+    let mut imag = vec![0.0f64; WINDOW_SIZE];
 
     while pos + WINDOW_SIZE <= n {
-        let mut real = vec![0.0f64; WINDOW_SIZE];
-        let mut imag = vec![0.0f64; WINDOW_SIZE];
+        real.fill(0.0);
+        imag.fill(0.0);
         for i in 0..WINDOW_SIZE {
             real[i] = samples[pos + i] as f64 * window[i];
         }
@@ -91,8 +100,8 @@ fn process_channel(samples: &mut [f32], window: &[f64], strength: f32) {
     pos = 0;
 
     while pos + WINDOW_SIZE <= n {
-        let mut real = vec![0.0f64; WINDOW_SIZE];
-        let mut imag = vec![0.0f64; WINDOW_SIZE];
+        real.fill(0.0);
+        imag.fill(0.0);
         for i in 0..WINDOW_SIZE {
             real[i] = samples[pos + i] as f64 * window[i];
         }

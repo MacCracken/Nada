@@ -32,6 +32,7 @@ pub enum SampleFormat {
 
 impl SampleFormat {
     /// Bytes per sample.
+    #[inline]
     pub fn bytes_per_sample(&self) -> usize {
         match self {
             Self::F32 => 4,
@@ -71,6 +72,7 @@ pub enum Layout {
 ///
 /// Use accessor methods (`samples()`, `channels()`, etc.) to read fields.
 /// Use `samples_mut()` for in-place processing.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct AudioBuffer {
     /// Raw sample data (f32 internally, converted on input/output).
@@ -132,7 +134,19 @@ impl AudioBuffer {
             tracing::warn!(sample_rate, "AudioBuffer: invalid sample rate");
             return Err(NadaError::InvalidSampleRate(sample_rate));
         }
-        let frames = samples.len() / channels as usize;
+        let ch = channels as usize;
+        if !samples.is_empty() && !samples.len().is_multiple_of(ch) {
+            tracing::warn!(
+                len = samples.len(),
+                channels,
+                "AudioBuffer: sample count not divisible by channels"
+            );
+            return Err(NadaError::LengthMismatch {
+                expected: (samples.len() / ch) * ch,
+                actual: samples.len(),
+            });
+        }
+        let frames = samples.len() / ch;
         Ok(Self {
             samples,
             channels,
@@ -142,7 +156,17 @@ impl AudioBuffer {
     }
 
     /// Create a silent buffer with the given dimensions.
+    ///
+    /// # Panics
+    ///
+    /// Debug-asserts that `channels > 0` and `sample_rate > 0`. In release mode,
+    /// zero values are accepted to avoid panics on the RT path.
     pub fn silence(channels: u32, frames: usize, sample_rate: u32) -> Self {
+        debug_assert!(channels > 0, "AudioBuffer::silence: channels must be > 0");
+        debug_assert!(
+            sample_rate > 0,
+            "AudioBuffer::silence: sample_rate must be > 0"
+        );
         Self {
             samples: vec![0.0; channels as usize * frames],
             channels,
@@ -152,16 +176,19 @@ impl AudioBuffer {
     }
 
     /// Duration of this buffer in seconds.
+    #[inline]
     pub fn duration_secs(&self) -> f64 {
         self.frames as f64 / self.sample_rate as f64
     }
 
     /// Total number of samples (frames * channels).
+    #[inline]
     pub fn total_samples(&self) -> usize {
         self.samples.len()
     }
 
     /// Peak amplitude across all channels.
+    #[inline]
     pub fn peak(&self) -> f32 {
         #[cfg(feature = "simd")]
         {
@@ -174,6 +201,7 @@ impl AudioBuffer {
     }
 
     /// RMS (root mean square) level.
+    #[inline]
     pub fn rms(&self) -> f32 {
         if self.samples.is_empty() {
             return 0.0;
@@ -269,11 +297,14 @@ pub fn mix(buffers: &[&AudioBuffer]) -> Result<AudioBuffer, NadaError> {
 
 /// Resample a buffer to a target sample rate using linear interpolation.
 pub fn resample_linear(buf: &AudioBuffer, target_rate: u32) -> Result<AudioBuffer, NadaError> {
-    if target_rate == 0 {
-        return Err(NadaError::InvalidSampleRate(0));
+    if target_rate == 0 || target_rate > 768000 {
+        return Err(NadaError::InvalidSampleRate(target_rate));
     }
     if target_rate == buf.sample_rate {
         return Ok(buf.clone());
+    }
+    if buf.frames == 0 {
+        return Ok(AudioBuffer::silence(buf.channels, 0, target_rate));
     }
 
     let ratio = target_rate as f64 / buf.sample_rate as f64;
@@ -307,6 +338,7 @@ pub fn resample_linear(buf: &AudioBuffer, target_rate: u32) -> Result<AudioBuffe
 ///
 /// Borrows the sample slice from an existing [`AudioBuffer`], avoiding allocation
 /// for analysis and metering paths that don't need to modify audio.
+#[must_use]
 #[derive(Debug)]
 pub struct AudioBufferRef<'a> {
     samples: &'a [f32],
@@ -342,31 +374,37 @@ impl<'a> AudioBufferRef<'a> {
     }
 
     /// Immutable sample data.
+    #[inline]
     pub fn samples(&self) -> &[f32] {
         self.samples
     }
 
     /// Number of channels.
+    #[inline]
     pub fn channels(&self) -> u32 {
         self.channels
     }
 
     /// Sample rate in Hz.
+    #[inline]
     pub fn sample_rate(&self) -> u32 {
         self.sample_rate
     }
 
     /// Number of frames.
+    #[inline]
     pub fn frames(&self) -> usize {
         self.frames
     }
 
     /// Peak amplitude.
+    #[inline]
     pub fn peak(&self) -> f32 {
         self.samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max)
     }
 
     /// RMS level.
+    #[inline]
     pub fn rms(&self) -> f32 {
         if self.samples.is_empty() {
             return 0.0;
@@ -380,6 +418,7 @@ impl<'a> AudioBufferRef<'a> {
 ///
 /// Effects and graph nodes borrow buffers from the pool instead of
 /// allocating fresh ones each cycle.
+#[must_use]
 #[derive(Debug)]
 pub struct BufferPool {
     buffers: Vec<AudioBuffer>,
@@ -416,6 +455,7 @@ impl BufferPool {
     }
 
     /// Number of available buffers in the pool.
+    #[inline]
     pub fn available(&self) -> usize {
         self.buffers.len()
     }

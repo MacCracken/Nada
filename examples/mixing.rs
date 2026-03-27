@@ -24,20 +24,8 @@ fn main() {
     // EQ: cut low rumble, boost presence
     let mut eq = ParametricEq::new(
         vec![
-            EqBandConfig {
-                band_type: BandType::HighPass,
-                freq_hz: 60.0,
-                gain_db: 0.0,
-                q: 0.707,
-                enabled: true,
-            },
-            EqBandConfig {
-                band_type: BandType::Peaking,
-                freq_hz: 3000.0,
-                gain_db: 2.0,
-                q: 1.5,
-                enabled: true,
-            },
+            EqBandConfig::new(BandType::HighPass, 60.0, 0.0, 0.707, true),
+            EqBandConfig::new(BandType::Peaking, 3000.0, 2.0, 1.5, true),
         ],
         sr,
         1,
@@ -46,15 +34,13 @@ fn main() {
 
     // Compress
     let mut comp = Compressor::new(
-        CompressorParams {
-            threshold_db: -12.0,
-            ratio: 3.0,
-            attack_ms: 10.0,
-            release_ms: 80.0,
-            makeup_gain_db: 2.0,
-            knee_db: 6.0,
-            ..Default::default()
-        },
+        CompressorParams::new()
+            .with_threshold(-12.0)
+            .with_ratio(3.0)
+            .with_attack(10.0)
+            .with_release(80.0)
+            .with_makeup_gain(2.0)
+            .with_knee(6.0),
         sr,
     )
     .unwrap();

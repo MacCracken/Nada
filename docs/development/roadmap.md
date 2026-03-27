@@ -91,20 +91,20 @@ All must be true:
 
 **Vision**: Dhvani expands from audio engine to complete sound generation platform. All synthesis lives here — consumers (shruti, jalwa, kiran, joshua, vansh, SY) get it for free. The LLM decides *what* to say or play; dhvani handles *how* it sounds. Pure math, no neural network inference in the audio path.
 
-**Migration**: Synthesis code currently in shruti-instruments (subtractive synth, drum machine, sampler, oscillator, voice management, filter, envelope, LFO, mod matrix) migrates into dhvani as shared modules. Shruti becomes a thin UI/preset/DAW layer over dhvani's synthesis engines.
+**Integration**: Synthesis engines are provided by [`naad`](https://crates.io/crates/naad) 1.0.0 via the `synthesis` feature flag. Voice synthesis is provided by [`svara`](https://crates.io/crates/svara) 1.0.0 via the `voice` feature flag. Shruti becomes a thin UI/preset/DAW layer over dhvani's synthesis integration.
 
 ### Synthesis Engines
 
-| # | Engine | Effort | Notes |
+| # | Engine | Status | Notes |
 |---|--------|--------|-------|
-| 1 | **Subtractive synth** | Medium | Migrate from shruti-instruments: 3-osc PolyBLEP, dual ADSR, SVF filter, dual LFO, mod matrix (8×8), unison, hard sync, ring mod, FM. Already proven with 1963 tests in shruti |
-| 2 | **FM synth** | Large | 4–6 operator FM, algorithm selection (DX7-style: 32 algorithms), ratio/detune/feedback per operator, FM matrix routing, velocity→operator level scaling |
-| 3 | **Additive synth** | Large | 64–256 harmonic partials with individual amplitude envelopes, spectral editing (draw/morph), resynthesis from audio (FFT→partials via existing analysis module), real-time partial manipulation |
-| 4 | **Wavetable synth** | Large | Wavetable loading (.wav frames, single-cycle), wavetable morphing (smooth interpolation between frames), position modulation via LFO/envelope, built-in factory tables (analog, digital, vocal, organic) |
-| 5 | **Physical modeling synth** | Large | Karplus-Strong string model, waveguide resonators (plucked/bowed/struck), exciter types (noise burst, impulse, bow), body resonance modeling, material parameters (brightness, decay, stiffness) |
-| 6 | **Granular synth** | Large | Grain cloud engine (position, density, size, pitch, spread), real-time granulation of loaded samples, freeze/scatter/spray modes, per-grain envelope (Gaussian/trapezoid), stereo grain panning |
-| 7 | **Drum synth** | Medium | Migrate drum machine core from shruti-instruments: 16-pad engine, velocity layers, per-pad effects. Sample-based + synthetic (sine kick, noise snare, metallic hi-hat) |
-| 8 | **Sampler engine** | Medium | Migrate from shruti-instruments: key/velocity zones, sample editing, slice mode (onset detection via existing analysis), time-stretching (granular OLA), SFZ/SF2 import |
+| 1 | **Subtractive synth** | ✅ via naad | `SubtractiveSynth` — oscillators + SVF filter + ADSR |
+| 2 | **FM synth** | ✅ via naad | `FmSynth` — multi-operator with algorithm selection |
+| 3 | **Additive synth** | ✅ via naad | `AdditiveSynth` — harmonic partials with individual control |
+| 4 | **Wavetable synth** | ✅ via naad | `WavetableOscillator` + `MorphWavetable` — morphing between tables |
+| 5 | **Physical modeling synth** | ✅ via naad | `KarplusStrong` — plucked string model |
+| 6 | **Granular synth** | ✅ via naad | `GranularEngine` — grain cloud with window shapes |
+| 7 | **Drum synth** | ✅ via naad | `KickDrum`, `SnareDrum`, `HiHat` — synthetic drum voices |
+| 8 | **Sampler engine** | — | Not yet — needs sample loading, key/velocity zones, SFZ/SF2 import |
 
 ### Voice Synthesis Engine (v2.0 scope)
 
@@ -112,16 +112,16 @@ All must be true:
 
 **Why in dhvani**: Voice is sound. Every consumer that needs speech — vansh (voice shell), SY (agent speech), joshua (NPC dialogue), kiran (game characters) — depends on dhvani already. One implementation, audited once, benchmarked once. Personality-driven prosody via bhava modulation is composition, not new code.
 
-| # | Item | Effort | Notes |
+| # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | **Formant synthesis** | Large | Model vocal tract as cascaded resonant filters (SVF already exists). 5 formant frequencies (F1–F5) define each vowel. Formant targets for all English phonemes (IPA table). Interpolation between formant sets for coarticulation |
-| 2 | **Glottal source model** | Medium | LF (Liljencrants-Fant) glottal pulse model. Parameters: fundamental frequency (F0), open quotient, spectral tilt. Replaces simple oscillator as voice excitation source |
-| 3 | **Noise source** | Small | Aspiration noise for fricatives (/s/, /f/, /h/), plosive bursts (/p/, /t/, /k/). Shaped by formant filter bank for correct spectral coloring |
-| 4 | **Phoneme sequencer** | Medium | Takes phoneme sequence + timing + stress markers. Interpolates formant targets between phonemes (coarticulation). Handles consonant-vowel transitions, diphthongs |
-| 5 | **Prosody engine** | Medium | F0 contour generation from stress/intonation markers. Speaking rate control. Emphasis (louder + slower + wider pitch). Question intonation (rising F0). Statement (falling F0). Excitement (wider F0 range, faster rate) |
-| 6 | **Bhava integration** | Medium | Personality-driven voice parameters. Emotional state modulates voice in real-time: anxious → faster rate, higher F0, breathier. Confident → slower, lower F0, fuller resonance. Sad → slower, narrow F0 range, softer. Maps bhava mood vector to prosody + formant parameters |
-| 7 | **Vocoder** | Large | 16–32 band analysis/synthesis filter bank. Carrier (synth oscillator or noise) + modulator (mic/audio input). Band envelope followers, sibilance detection, formant shift, unvoiced noise injection, freeze mode |
-| 8 | **Articulatory modeling** | Very Large | Physical model of vocal tract (tongue, lips, jaw, velum). Waveguide resonators (same math as physical modeling synth). Most realistic but most expensive. Future — start with formant synthesis, graduate to articulatory when demand justifies |
+| 1 | **Formant synthesis** | ✅ via svara | `FormantFilter` — parallel biquad bank, `VowelTarget` with F1–F5 |
+| 2 | **Glottal source model** | ✅ via svara | `GlottalSource` — Rosenberg + LF models, Rd voice quality, vibrato, jitter, shimmer |
+| 3 | **Noise source** | ✅ via svara | Fricatives, plosives, aspiration handled by phoneme synthesis |
+| 4 | **Phoneme sequencer** | ✅ via svara | `PhonemeSequence` — ~50 IPA phonemes, coarticulation, crossfading |
+| 5 | **Prosody engine** | ✅ via svara | `ProsodyContour` — f0 contours, stress, intonation patterns |
+| 6 | **Bhava integration** | — | Personality→prosody mapping not yet implemented |
+| 7 | **Vocoder** | ✅ via naad | `Vocoder` — analysis/synthesis filter bank |
+| 8 | **Articulatory modeling** | — | Future — start with formant synthesis (done), graduate when demand justifies |
 
 #### Voice synthesis data flow
 

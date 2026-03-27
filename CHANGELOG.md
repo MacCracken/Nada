@@ -5,6 +5,79 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed — BREAKING
+
+#### API Hardening
+- `Compressor::set_params()`, `EnvelopeLimiter::set_params()`, `DeEsser::set_params()`, `Envelope::set_params()`, `Reverb::set_params()` now return `Result` — parameters are validated on update (previously bypassed constructor checks)
+- `#[non_exhaustive]` added to all public parameter structs (`CompressorParams`, `LimiterParams`, `DeEsserParams`, `ReverbParams`, `AdsrParams`, `ModulatedDelayParams`, `EqBandConfig`, `GainSmootherParams`, `GraphicEqSettings`) and several data structs (`DynamicsAnalysis`, `Spectrogram`, `R128Loudness`, `OnsetResult`, `WaveformData`, `NoteEvent`, `ControlChange`, `MidiClip`, `CcMapping`, `Connection`, `CaptureConfig`, `OutputConfig`, `AudioDevice`)
+- `#[non_exhaustive]` added to `EnvelopeState`, `VoiceState`, `CrossfadeType`, `FadeCurve` enums
+- `AudioBuffer::from_interleaved()` now rejects sample counts not divisible by channel count (returns `LengthMismatch`)
+- Builder constructors added: `CompressorParams::new().with_threshold().with_ratio()...`, `ReverbParams::new().with_room_size()...`, `LimiterParams::new().with_ceiling()...`, `EqBandConfig::new()`
+- `NoteEvent::new()` and `ControlChange::new()` constructors added
+
+### Fixed
+
+#### Correctness
+- **R128 loudness** — integrated, ungated, and short-term LUFS now averaged in linear power domain per EBU R128 spec (was incorrectly averaging in dB domain)
+- **True peak detection** — upgraded from linear interpolation (which always equaled sample peak) to 4-point cubic Hermite interpolation for proper inter-sample peak detection
+- **`AudioClock::set_tempo()`** — now clamps negative and NaN values to 0 (was storing invalid values)
+- **`Lfo::set_rate()`** — now clamps negative values to 0 (was allowing negative phase drift)
+- **`GainSmoother::new()`** — now clamps attack/release to 0.0–1.0 (was accepting any value)
+- **FFI `nada_buffer_silence()`** — now returns null for `channels == 0` or `sample_rate == 0`
+- **Oscillator triangle waveform** — now uses PolyBLEP-integrated leaky integrator for proper anti-aliasing (was using naive formula despite docs claiming PolyBLEP)
+- **STFT `hop_size.max(1)`** dead code removed (error check already handled `hop_size == 0`)
+- **`resample_linear()`** — early return for empty buffers and upper bound validation on target_rate
+
+#### Performance
+- **Graph processor** — output buffers reused across cycles (was allocating fresh `AudioBuffer::silence` per node per cycle)
+- **STFT** — scratch `real`/`imag` buffers allocated once and reused across frames (was allocating per frame)
+- **Noise reduction** — same scratch buffer reuse optimization
+- **LevelMeter peak hold** — decay now scales by frame count (`powi(frames)`) for buffer-size-independent rate
+
+### Added
+
+#### Annotations
+- `#[must_use]` on all public structs and pure functions across the crate (~50+ types)
+- `#[inline]` on hot-path functions: `BiquadState::process`, `Oscillator::sample`, `Envelope::tick`, `Lfo::tick`, `StereoPanner::process`, `GainSmoother::smooth`, SIMD dispatch functions, clock accessors, MIDI translate functions, meter store/load
+- `AudioBuffer::silence()` now debug-asserts `channels > 0` and `sample_rate > 0`
+
+#### Tracing
+- `tracing::debug!` on all DSP effect constructors and `set_sample_rate` calls
+- `tracing::debug!` on all analysis entry points (measure_r128, analyze_dynamics, stft, chromagram, detect_onsets)
+- `tracing::warn!` on all error paths in conversion functions and FFI null returns
+- `tracing::debug!` on noise_reduce, resample_sinc, Graph::compile
+
+#### Documentation
+- Redundant explicit rustdoc link targets fixed in lib.rs
+
+#### Synthesis Integration (feature: `synthesis`)
+- **`synthesis` module** — re-exports from [`naad`](https://crates.io/crates/naad) 1.0.0: subtractive, FM, additive, wavetable, granular, physical modeling, drum, vocoder synthesis engines
+- `render_to_buffer()` and `render_stereo_to_buffer()` — bridge functions from sample-based synthesis to dhvani `AudioBuffer`
+- All naad core primitives available: oscillators, SVF/biquad filters, ADSR/multi-stage envelopes, LFO, noise generators, mod matrix, voice manager, parameter smoothing, tuning, panning, effects (chorus, flanger, phaser, distortion)
+
+#### Voice Synthesis Integration (feature: `voice`)
+- **`voice_synth` module** — re-exports from [`svara`](https://crates.io/crates/svara) 1.0.0: glottal source (Rosenberg/LF models), formant filtering, vocal tract modeling, phoneme inventory (~50 IPA phonemes), prosody contours, phoneme sequencing with coarticulation
+- `render_sequence()` — render a `PhonemeSequence` to `AudioBuffer`
+- `render_phoneme()` — render a single `Phoneme` to `AudioBuffer`
+- `render_vocal_tract()` — low-level glottal source + vocal tract rendering
+- Voice profiles: male, female, child with breathiness, vibrato, jitter, shimmer control
+
+#### Tests
+- 20 new tests: 9 P(-1) hardening tests + 7 synthesis tests + 4 voice tests (450 total)
+
+### Performance
+- stereo_to_mono: 97µs → 54µs (−45%)
+- mono_to_stereo: 97µs → 68µs (−30%)
+- noise_gate: 17.5µs → 10.9µs (−38%)
+- reverb: 1.14ms → 967µs (−15%)
+- limiter: 689µs → 614µs (−11%)
+- parametric_eq_10band: 2.96ms → 2.56ms (−14%)
+
+### Tooling
+- Dependencies updated (proptest 1.11, serde_spanned 1.1, cc 1.2.58, etc.)
+
 ## [0.22.4] — 2026-03-22
 
 ### Changed — BREAKING

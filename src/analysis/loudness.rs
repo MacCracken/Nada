@@ -11,6 +11,8 @@ use crate::dsp::biquad::{BiquadCoeffs, FilterType};
 use crate::error::NadaError;
 
 /// Full EBU R128 loudness measurement result.
+#[must_use]
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct R128Loudness {
     /// Integrated loudness (LUFS) — the main number.
@@ -29,6 +31,12 @@ pub struct R128Loudness {
 ///
 /// Returns `NadaError::Dsp` if the buffer is empty or has zero channels.
 pub fn measure_r128(buf: &AudioBuffer) -> crate::Result<R128Loudness> {
+    tracing::debug!(
+        frames = buf.frames,
+        channels = buf.channels,
+        sample_rate = buf.sample_rate,
+        "measure_r128: started"
+    );
     if buf.samples.is_empty() {
         return Err(NadaError::Dsp("cannot measure R128 on empty buffer".into()));
     }
@@ -100,11 +108,11 @@ pub fn measure_r128(buf: &AudioBuffer) -> crate::Result<R128Loudness> {
         });
     }
 
-    // Ungated loudness (above absolute gate)
-    let ungated_mean: f32 = above_abs_gate.iter().sum::<f32>() / above_abs_gate.len() as f32;
+    // Ungated loudness (above absolute gate) — average in linear power domain per EBU R128
+    let ungated_lufs = lufs_from_blocks(&above_abs_gate);
 
     // Step 4: Relative gate at ungated - 10 LU
-    let relative_threshold = ungated_mean - 10.0;
+    let relative_threshold = ungated_lufs - 10.0;
     let above_rel_gate: Vec<f32> = above_abs_gate
         .iter()
         .copied()
@@ -112,22 +120,18 @@ pub fn measure_r128(buf: &AudioBuffer) -> crate::Result<R128Loudness> {
         .collect();
 
     let integrated_lufs = if above_rel_gate.is_empty() {
-        ungated_mean
+        ungated_lufs
     } else {
-        above_rel_gate.iter().sum::<f32>() / above_rel_gate.len() as f32
+        lufs_from_blocks(&above_rel_gate)
     };
 
     // Momentary = last 400ms block
     let momentary_lufs = *block_loudness.last().unwrap_or(&f32::NEG_INFINITY);
 
-    // Short-term = mean of last ~3s (30 blocks at 100ms hop)
+    // Short-term = mean of last ~3s (30 blocks at 100ms hop) — averaged in linear power domain
     let short_term_blocks = 30.min(block_loudness.len());
     let short_term_slice = &block_loudness[block_loudness.len() - short_term_blocks..];
-    let short_term_lufs = if short_term_slice.is_empty() {
-        f32::NEG_INFINITY
-    } else {
-        short_term_slice.iter().sum::<f32>() / short_term_slice.len() as f32
-    };
+    let short_term_lufs = lufs_from_blocks(short_term_slice);
 
     // LRA: difference between 95th and 10th percentile of gated blocks
     let range_lu = compute_lra(&above_rel_gate);
@@ -181,6 +185,26 @@ fn apply_k_weighting(buf: &AudioBuffer) -> AudioBuffer {
     }
 
     filtered
+}
+
+/// Average block LUFS values in the linear power domain per EBU R128.
+///
+/// Converting back from LUFS to linear power, averaging, then converting back
+/// ensures correct results (arithmetic mean of dB values is incorrect).
+fn lufs_from_blocks(blocks: &[f32]) -> f32 {
+    if blocks.is_empty() {
+        return f32::NEG_INFINITY;
+    }
+    let mean_power: f64 = blocks
+        .iter()
+        .map(|&lufs| 10.0f64.powf(lufs as f64 / 10.0))
+        .sum::<f64>()
+        / blocks.len() as f64;
+    if mean_power > 0.0 {
+        (-0.691 + 10.0 * mean_power.log10()) as f32
+    } else {
+        f32::NEG_INFINITY
+    }
 }
 
 /// Compute Loudness Range (LRA) from gated block loudness values.

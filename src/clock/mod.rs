@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Audio transport clock — tracks position in samples, with tempo awareness.
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioClock {
     position_samples: u64,
@@ -33,16 +34,19 @@ impl AudioClock {
     }
 
     /// Current position in seconds.
+    #[inline]
     pub fn position_secs(&self) -> f64 {
         self.position_samples as f64 / self.sample_rate as f64
     }
 
     /// Current position in milliseconds.
+    #[inline]
     pub fn position_ms(&self) -> f64 {
         self.position_secs() * 1000.0
     }
 
     /// Current beat position (requires tempo > 0).
+    #[inline]
     pub fn position_beats(&self) -> Option<f64> {
         if self.tempo_bpm <= 0.0 {
             return None;
@@ -78,6 +82,7 @@ impl AudioClock {
     }
 
     /// Samples per beat (requires tempo > 0).
+    #[inline]
     pub fn samples_per_beat(&self) -> Option<f64> {
         if self.tempo_bpm <= 0.0 {
             return None;
@@ -86,31 +91,40 @@ impl AudioClock {
     }
 
     /// Generate a PTS (presentation timestamp) in microseconds for A/V sync.
+    #[inline]
     pub fn pts_us(&self) -> u64 {
         (self.position_secs() * 1_000_000.0) as u64
     }
 
     /// Current position in samples.
+    #[inline]
     pub fn position_samples(&self) -> u64 {
         self.position_samples
     }
 
     /// Sample rate in Hz.
+    #[inline]
     pub fn sample_rate(&self) -> u32 {
         self.sample_rate
     }
 
     /// Tempo in BPM (0 = no tempo).
+    #[inline]
     pub fn tempo_bpm(&self) -> f64 {
         self.tempo_bpm
     }
 
-    /// Set the tempo in BPM.
+    /// Set the tempo in BPM. Negative and NaN values are clamped to 0.
     pub fn set_tempo(&mut self, bpm: f64) {
-        self.tempo_bpm = bpm;
+        self.tempo_bpm = if bpm.is_finite() && bpm > 0.0 {
+            bpm
+        } else {
+            0.0
+        };
     }
 
     /// Whether the clock is running.
+    #[inline]
     pub fn is_running(&self) -> bool {
         self.running
     }

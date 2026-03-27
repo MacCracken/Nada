@@ -19,17 +19,23 @@ dsp = []
 analysis = ["dsp"]                      # R128 K-weighting uses biquad, dynamics uses dB conversion
 midi = []
 graph = []
+synthesis = ["dep:naad"]                # Synthesis engines: subtractive, FM, additive, wavetable, granular, physical, drum, vocoder
+voice = ["dep:svara", "synthesis"]      # Voice synthesis: glottal source, formant, phoneme, prosody, vocal tract
 # Platform
 simd = []
 pipewire = ["dep:pipewire"]
 # Bundles
-full = ["simd", "dsp", "analysis", "midi", "graph", "pipewire"]
+full = ["simd", "dsp", "analysis", "midi", "graph", "synthesis", "voice", "pipewire"]
 
 [dependencies]
-abaco = "0.22.4"
+abaco = { version = "1.0.0", path = "../abaco" }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 tracing = "0.1"
+
+# Synthesis
+naad = { version = "1.0.0", optional = true }
+svara = { version = "1.0.0", optional = true, default-features = false, features = ["naad-backend"] }
 
 # Audio capture
 pipewire = { version = "0.9", optional = true }
@@ -81,3 +87,11 @@ required-features = ["midi"]
 [[example]]
 name = "graph"
 required-features = ["graph"]
+
+[[example]]
+name = "synthesis"
+required-features = ["synthesis"]
+
+[[example]]
+name = "voice"
+required-features = ["voice"]

@@ -19,6 +19,7 @@ pub enum LfoShape {
 }
 
 /// Low-frequency oscillator for parameter modulation.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct Lfo {
     shape: LfoShape,
@@ -64,6 +65,7 @@ impl Lfo {
     }
 
     /// Advance one sample and return the current value (-depth to +depth).
+    #[inline]
     pub fn tick(&mut self) -> f32 {
         let raw = match self.shape {
             LfoShape::Sine => (self.phase * std::f64::consts::TAU).sin() as f32,
@@ -113,9 +115,9 @@ impl Lfo {
         self.sh_value = 0.0;
     }
 
-    /// Set the rate in Hz.
+    /// Set the rate in Hz. Negative values are clamped to 0.
     pub fn set_rate(&mut self, rate: f32) {
-        self.rate = rate;
+        self.rate = rate.max(0.0);
     }
 
     /// Set the depth (0.0–1.0).

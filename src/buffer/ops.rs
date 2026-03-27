@@ -5,6 +5,7 @@ use crate::error::NadaError;
 
 /// Crossfade type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CrossfadeType {
     /// Linear crossfade (constant amplitude sum).
     Linear,
@@ -14,6 +15,7 @@ pub enum CrossfadeType {
 
 /// Fade curve type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum FadeCurve {
     /// Linear ramp.
     Linear,

@@ -20,7 +20,9 @@
 use serde::{Deserialize, Serialize};
 
 /// Parameters for gain smoothing.
+#[must_use]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(default)]
 pub struct GainSmootherParams {
     /// EMA coefficient when gain is decreasing (0.0–1.0). Higher = faster.
@@ -56,6 +58,7 @@ impl GainSmootherParams {
 /// Tracks a target gain value and smoothly converges toward it, using
 /// separate attack (fast) and release (slow) coefficients to prevent
 /// audible pumping in normalization and volume automation.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct GainSmoother {
     params: GainSmootherParams,
@@ -69,7 +72,10 @@ impl GainSmoother {
     /// Typical values: attack `0.3`, release `0.05`.
     pub fn new(attack: f32, release: f32) -> Self {
         Self {
-            params: GainSmootherParams { attack, release },
+            params: GainSmootherParams {
+                attack: attack.clamp(0.0, 1.0),
+                release: release.clamp(0.0, 1.0),
+            },
             current: 1.0,
         }
     }
@@ -86,6 +92,7 @@ impl GainSmoother {
     ///
     /// Call once per buffer with the desired gain. The smoother will
     /// converge toward the target at the configured rate.
+    #[inline]
     pub fn smooth(&mut self, target: f32) -> f32 {
         let alpha = if target < self.current {
             self.params.attack

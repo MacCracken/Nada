@@ -46,27 +46,9 @@ fn bench_biquad_lp_1s(c: &mut Criterion) {
 fn bench_parametric_eq_3band_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
     let bands = vec![
-        EqBandConfig {
-            band_type: BandType::HighPass,
-            freq_hz: 80.0,
-            gain_db: 0.0,
-            q: 0.707,
-            enabled: true,
-        },
-        EqBandConfig {
-            band_type: BandType::Peaking,
-            freq_hz: 3000.0,
-            gain_db: 3.0,
-            q: 1.5,
-            enabled: true,
-        },
-        EqBandConfig {
-            band_type: BandType::HighShelf,
-            freq_hz: 10000.0,
-            gain_db: -2.0,
-            q: 0.707,
-            enabled: true,
-        },
+        EqBandConfig::new(BandType::HighPass, 80.0, 0.0, 0.707, true),
+        EqBandConfig::new(BandType::Peaking, 3000.0, 3.0, 1.5, true),
+        EqBandConfig::new(BandType::HighShelf, 10000.0, -2.0, 0.707, true),
     ];
     let mut eq = ParametricEq::new(bands, 44100, 2);
     c.bench_function("parametric_eq_3band_stereo_1s", |bench| {
@@ -81,13 +63,7 @@ fn bench_parametric_eq_10band_1s(c: &mut Criterion) {
     ];
     let bands: Vec<EqBandConfig> = freqs
         .iter()
-        .map(|&f| EqBandConfig {
-            band_type: BandType::Peaking,
-            freq_hz: f,
-            gain_db: 3.0,
-            q: 1.4,
-            enabled: true,
-        })
+        .map(|&f| EqBandConfig::new(BandType::Peaking, f, 3.0, 1.4, true))
         .collect();
     let mut eq = ParametricEq::new(bands, 44100, 2);
     c.bench_function("parametric_eq_10band_stereo_1s", |bench| {
@@ -98,15 +74,13 @@ fn bench_parametric_eq_10band_1s(c: &mut Criterion) {
 fn bench_compressor_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
     let mut comp = Compressor::new(
-        CompressorParams {
-            threshold_db: -18.0,
-            ratio: 4.0,
-            attack_ms: 10.0,
-            release_ms: 100.0,
-            makeup_gain_db: 3.0,
-            knee_db: 6.0,
-            ..Default::default()
-        },
+        CompressorParams::new()
+            .with_threshold(-18.0)
+            .with_ratio(4.0)
+            .with_attack(10.0)
+            .with_release(100.0)
+            .with_makeup_gain(3.0)
+            .with_knee(6.0),
         44100,
     )
     .unwrap();
@@ -118,11 +92,10 @@ fn bench_compressor_1s(c: &mut Criterion) {
 fn bench_reverb_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
     let mut reverb = Reverb::new(
-        ReverbParams {
-            room_size: 0.6,
-            damping: 0.4,
-            mix: 0.3,
-        },
+        ReverbParams::new()
+            .with_room_size(0.6)
+            .with_damping(0.4)
+            .with_mix(0.3),
         44100,
     )
     .unwrap();
@@ -142,12 +115,10 @@ fn bench_panner_1s(c: &mut Criterion) {
 fn bench_limiter_1s(c: &mut Criterion) {
     let mut buf = make_stereo_1s();
     let mut limiter = dhvani::dsp::EnvelopeLimiter::new(
-        dhvani::dsp::LimiterParams {
-            ceiling_db: -1.0,
-            release_ms: 50.0,
-            knee_db: 3.0,
-            ..Default::default()
-        },
+        dhvani::dsp::LimiterParams::new()
+            .with_ceiling(-1.0)
+            .with_release(50.0)
+            .with_knee(3.0),
         44100,
     )
     .unwrap();

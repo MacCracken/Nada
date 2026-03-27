@@ -18,12 +18,18 @@ pub enum Waveform {
 }
 
 /// Anti-aliased oscillator with PolyBLEP correction.
+///
+/// Sine, saw, and square use PolyBLEP for alias reduction.
+/// Triangle integrates the PolyBLEP-corrected square via a leaky integrator.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct Oscillator {
     waveform: Waveform,
     phase: f64,
     sample_rate: f64,
     rng_state: u32,
+    /// Leaky integrator state for PolyBLEP triangle generation.
+    tri_integrator: f64,
 }
 
 impl Oscillator {
@@ -42,6 +48,7 @@ impl Oscillator {
             phase: 0.0,
             sample_rate: sample_rate as f64,
             rng_state: 0x12345678,
+            tri_integrator: 0.0,
         }
     }
 
@@ -58,6 +65,7 @@ impl Oscillator {
     /// Generate the next sample at the given frequency.
     ///
     /// Call once per sample. Advances the internal phase.
+    #[inline]
     pub fn sample(&mut self, freq: f64) -> f32 {
         let dt = freq / self.sample_rate;
         let value = match self.waveform {
@@ -71,16 +79,16 @@ impl Oscillator {
                 naive + poly_blep(self.phase, dt) - poly_blep((self.phase + 0.5) % 1.0, dt)
             }
             Waveform::Triangle => {
-                // Integrate square wave for triangle
+                // PolyBLEP-corrected triangle via leaky integration of anti-aliased square
                 let sq = if self.phase < 0.5 { 1.0 } else { -1.0 };
                 let sq_blep =
                     sq + poly_blep(self.phase, dt) - poly_blep((self.phase + 0.5) % 1.0, dt);
-                // Leaky integrator approximation for triangle from square
-                // Use direct formula instead: 2*|2*phase - 1| - 1
-                let tri = 4.0 * (self.phase - 0.5).abs() - 1.0;
-                // Blend: use direct formula (less aliased at high freq)
-                let _ = sq_blep;
-                tri
+                // Leaky integrator: integrates the PolyBLEP square into a triangle.
+                // Scale by 4*dt to normalize amplitude (dt = freq/sr).
+                self.tri_integrator += sq_blep * 4.0 * dt;
+                // Leak factor prevents DC drift
+                self.tri_integrator *= 1.0 - dt;
+                self.tri_integrator.clamp(-1.0, 1.0)
             }
             Waveform::Noise => {
                 self.rng_state ^= self.rng_state << 13;
@@ -102,6 +110,7 @@ impl Oscillator {
     /// Reset phase to zero.
     pub fn reset(&mut self) {
         self.phase = 0.0;
+        self.tri_integrator = 0.0;
     }
 
     /// Current phase (0.0–1.0).

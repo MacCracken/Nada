@@ -10,7 +10,9 @@ use crate::dsp::biquad::{BiquadFilter, FilterType};
 use crate::dsp::db_to_amplitude;
 
 /// De-esser parameters.
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(default)]
 pub struct DeEsserParams {
     /// Center frequency of the sibilance band in Hz (typically 5000–8000).
@@ -51,6 +53,7 @@ impl DeEsserParams {
 }
 
 /// Sibilance reduction processor.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct DeEsser {
     params: DeEsserParams,
@@ -79,6 +82,12 @@ impl DeEsser {
             params.q,
             sample_rate,
             channels,
+        );
+        tracing::debug!(
+            sample_rate,
+            channels,
+            freq_hz = params.freq_hz,
+            "DeEsser: created"
         );
         Ok(Self {
             params,
@@ -150,6 +159,7 @@ impl DeEsser {
 
     /// Update the sample rate and rebuild the detector filter.
     pub fn set_sample_rate(&mut self, sample_rate: u32) {
+        tracing::debug!(sample_rate, "DeEsser: sample rate updated");
         self.sample_rate = sample_rate;
         self.detector = BiquadFilter::new(
             FilterType::BandPass,
@@ -165,8 +175,15 @@ impl DeEsser {
         self.detector.reset();
     }
 
-    /// Update parameters.
-    pub fn set_params(&mut self, params: DeEsserParams) {
+    /// Update parameters. Returns an error if parameters are invalid.
+    pub fn set_params(&mut self, params: DeEsserParams) -> crate::Result<()> {
+        params
+            .validate()
+            .map_err(|reason| crate::NadaError::InvalidParameter {
+                name: "DeEsserParams".into(),
+                value: String::new(),
+                reason: reason.into(),
+            })?;
         self.detector = BiquadFilter::new(
             FilterType::BandPass,
             params.freq_hz,
@@ -175,6 +192,7 @@ impl DeEsser {
             self.channels,
         );
         self.params = params;
+        Ok(())
     }
 }
 
@@ -258,12 +276,14 @@ mod tests {
     #[test]
     fn set_params_updates_detector() {
         let mut deesser = DeEsser::new(DeEsserParams::default(), 44100, 1).unwrap();
-        deesser.set_params(DeEsserParams {
-            freq_hz: 8000.0,
-            threshold_db: -20.0,
-            reduction_db: 8.0,
-            q: 3.0,
-        });
+        deesser
+            .set_params(DeEsserParams {
+                freq_hz: 8000.0,
+                threshold_db: -20.0,
+                reduction_db: 8.0,
+                q: 3.0,
+            })
+            .unwrap();
         let mut buf = make_sine(8000.0, 0.8, 4096);
         deesser.process(&mut buf);
         assert!(buf.samples.iter().all(|s| s.is_finite()));

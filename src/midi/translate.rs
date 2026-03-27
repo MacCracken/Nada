@@ -9,6 +9,8 @@ pub const PITCH_BEND_CENTER: u32 = 0x80000000;
 /// Scale 7-bit MIDI 1.0 velocity to 16-bit MIDI 2.0.
 ///
 /// Uses the MIDI 2.0 spec scaling: `v << 9 | v << 2 | v >> 5`.
+#[must_use]
+#[inline]
 pub fn velocity_7_to_16(v: u8) -> u16 {
     if v == 0 {
         return 0;
@@ -18,33 +20,45 @@ pub fn velocity_7_to_16(v: u8) -> u16 {
 }
 
 /// Scale 16-bit MIDI 2.0 velocity to 7-bit MIDI 1.0 (lossy).
+#[must_use]
+#[inline]
 pub fn velocity_16_to_7(v: u16) -> u8 {
     (v >> 9) as u8
 }
 
 /// Scale 7-bit CC value to 32-bit MIDI 2.0.
+#[must_use]
+#[inline]
 pub fn cc_7_to_32(v: u8) -> u32 {
     let v = v as u32;
     (v << 25) | (v << 18) | (v << 11) | (v << 4) | (v >> 3)
 }
 
 /// Scale 32-bit CC value to 7-bit MIDI 1.0 (lossy).
+#[must_use]
+#[inline]
 pub fn cc_32_to_7(v: u32) -> u8 {
     (v >> 25) as u8
 }
 
 /// Convert 14-bit MIDI 1.0 pitch bend to 32-bit MIDI 2.0.
+#[must_use]
+#[inline]
 pub fn pitch_bend_14_to_32(v: u16) -> u32 {
     let v = v as u32;
     (v << 18) | (v << 4) | (v >> 10)
 }
 
 /// Convert 32-bit MIDI 2.0 pitch bend to 14-bit MIDI 1.0 (lossy).
+#[must_use]
+#[inline]
 pub fn pitch_bend_32_to_14(v: u32) -> u16 {
     (v >> 18) as u16
 }
 
 /// Convert a MIDI 1.0 NoteEvent to a MIDI 2.0 NoteOnV2.
+#[must_use]
+#[inline]
 pub fn note_event_to_v2(event: &NoteEvent) -> NoteOnV2 {
     NoteOnV2 {
         position: event.position,
@@ -59,6 +73,8 @@ pub fn note_event_to_v2(event: &NoteEvent) -> NoteOnV2 {
 /// Convert a MIDI 2.0 NoteOnV2 back to a MIDI 1.0 NoteEvent (lossy).
 ///
 /// Requires a duration since NoteOnV2 doesn't carry duration.
+#[must_use]
+#[inline]
 pub fn note_on_v2_to_event(event: &NoteOnV2, duration: FramePos) -> NoteEvent {
     NoteEvent {
         position: event.position,
@@ -70,6 +86,8 @@ pub fn note_on_v2_to_event(event: &NoteOnV2, duration: FramePos) -> NoteEvent {
 }
 
 /// Convert a MIDI 1.0 ControlChange to MIDI 2.0 ControlChangeV2.
+#[must_use]
+#[inline]
 pub fn cc_to_v2(cc: &ControlChange) -> ControlChangeV2 {
     ControlChangeV2 {
         position: cc.position,
@@ -80,6 +98,8 @@ pub fn cc_to_v2(cc: &ControlChange) -> ControlChangeV2 {
 }
 
 /// Convert a MIDI 2.0 ControlChangeV2 to MIDI 1.0 ControlChange (lossy).
+#[must_use]
+#[inline]
 pub fn cc_v2_to_cc(cc: &ControlChangeV2) -> ControlChange {
     ControlChange {
         position: cc.position,

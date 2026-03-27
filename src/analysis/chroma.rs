@@ -9,6 +9,7 @@ pub const PITCH_CLASSES: [&str; 12] = [
 ];
 
 /// A chromagram: energy distribution across 12 pitch classes.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct Chromagram {
     /// Energy per pitch class (0=C, 1=C#, ..., 11=B). Normalized 0–1.
@@ -47,6 +48,7 @@ impl Chromagram {
 ///
 /// Returns `NadaError::Dsp` if the underlying FFT computation fails.
 pub fn chromagram(buf: &AudioBuffer, window_size: usize) -> crate::Result<Chromagram> {
+    tracing::debug!(frames = buf.frames, window_size, "chromagram: started");
     let spec = spectrum_fft(buf, window_size)?;
     let mut chroma = [0.0f32; 12];
 

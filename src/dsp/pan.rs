@@ -5,6 +5,7 @@ use crate::buffer::AudioBuffer;
 /// Stereo panner using constant-power (sin/cos) law.
 ///
 /// Pan position: -1.0 = full left, 0.0 = center, +1.0 = full right.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct StereoPanner {
     pan: f32,
@@ -40,6 +41,7 @@ impl StereoPanner {
     /// Process a stereo audio buffer in-place.
     ///
     /// For mono buffers, this is a no-op. For stereo+, applies pan gains to L/R channels.
+    #[inline]
     pub fn process(&self, buf: &mut AudioBuffer) {
         if buf.channels < 2 {
             return;

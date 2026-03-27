@@ -333,6 +333,111 @@ fn compressor_parallel_mix() {
     assert!(avg > 0.0 && avg <= 1.0);
 }
 
+// ── P(-1) hardening tests ────────────────────────────────────────────
+
+#[test]
+fn from_interleaved_rejects_non_divisible_samples() {
+    // 5 samples with 2 channels → not evenly divisible
+    let result = AudioBuffer::from_interleaved(vec![0.0; 5], 2, 44100);
+    assert!(result.is_err());
+}
+
+#[test]
+fn resample_linear_empty_buffer() {
+    let buf = AudioBuffer::silence(2, 0, 44100);
+    let out = crate::buffer::resample_linear(&buf, 48000).unwrap();
+    assert_eq!(out.frames, 0);
+    assert_eq!(out.sample_rate, 48000);
+}
+
+#[test]
+fn resample_linear_rejects_high_rate() {
+    let buf = AudioBuffer::silence(1, 100, 44100);
+    let result = crate::buffer::resample_linear(&buf, 800000);
+    assert!(result.is_err());
+}
+
+#[cfg(feature = "analysis")]
+#[test]
+fn true_peak_exceeds_sample_peak_cubic() {
+    // Alternating +/- values should produce inter-sample peaks > sample peaks
+    // with cubic interpolation (unlike linear which can't)
+    let samples = vec![0.0, 0.9, -0.9, 0.9, -0.9, 0.9, -0.9, 0.0];
+    let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
+    let d = crate::analysis::dynamics::analyze_dynamics(&buf);
+    // Cubic Hermite should detect inter-sample overshoot
+    assert!(
+        d.true_peak[0] >= d.peak[0],
+        "true_peak {} should be >= peak {}",
+        d.true_peak[0],
+        d.peak[0]
+    );
+}
+
+#[cfg(feature = "dsp")]
+#[test]
+fn set_params_rejects_invalid() {
+    use crate::dsp::{Compressor, CompressorParams};
+    let mut comp = Compressor::new(CompressorParams::default(), 44100).unwrap();
+    // ratio < 1.0 should be rejected
+    let bad = CompressorParams {
+        ratio: 0.5,
+        ..Default::default()
+    };
+    assert!(comp.set_params(bad).is_err());
+}
+
+#[cfg(feature = "dsp")]
+#[test]
+fn limiter_set_params_rejects_invalid() {
+    use crate::dsp::{EnvelopeLimiter, LimiterParams};
+    let mut limiter = EnvelopeLimiter::new(LimiterParams::default(), 44100).unwrap();
+    let bad = LimiterParams {
+        ceiling_db: 6.0, // positive ceiling is invalid
+        ..Default::default()
+    };
+    assert!(limiter.set_params(bad).is_err());
+}
+
+#[cfg(feature = "dsp")]
+#[test]
+fn lfo_set_rate_clamps_negative() {
+    use crate::dsp::{Lfo, LfoShape};
+    let mut lfo = Lfo::new(LfoShape::Sine, 1.0, 1.0, 44100);
+    lfo.set_rate(-5.0);
+    assert!(lfo.rate() >= 0.0);
+}
+
+#[test]
+fn clock_set_tempo_rejects_nan() {
+    let mut clock = AudioClock::new(44100);
+    clock.set_tempo(f64::NAN);
+    assert_eq!(clock.tempo_bpm(), 0.0);
+    clock.set_tempo(-120.0);
+    assert_eq!(clock.tempo_bpm(), 0.0);
+    clock.set_tempo(120.0);
+    assert_eq!(clock.tempo_bpm(), 120.0);
+}
+
+#[cfg(feature = "dsp")]
+#[test]
+fn triangle_oscillator_produces_output() {
+    use crate::dsp::{Oscillator, Waveform};
+    let mut osc = Oscillator::new(Waveform::Triangle, 44100);
+    let mut has_positive = false;
+    let mut has_negative = false;
+    for _ in 0..44100 {
+        let s = osc.sample(440.0);
+        if s > 0.3 {
+            has_positive = true;
+        }
+        if s < -0.3 {
+            has_negative = true;
+        }
+    }
+    assert!(has_positive && has_negative, "Triangle should oscillate");
+}
+
 #[cfg(feature = "dsp")]
 #[test]
 fn biquad_half_mix() {

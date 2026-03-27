@@ -9,7 +9,9 @@ use crate::buffer::AudioBuffer;
 use crate::dsp::{amplitude_to_db, db_to_amplitude};
 
 /// Compressor parameters.
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(default)]
 pub struct CompressorParams {
     /// Threshold in dB (signals above this are compressed).
@@ -43,6 +45,60 @@ impl Default for CompressorParams {
 }
 
 impl CompressorParams {
+    /// Create compressor parameters with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set threshold in dB.
+    #[inline]
+    pub fn with_threshold(mut self, db: f32) -> Self {
+        self.threshold_db = db;
+        self
+    }
+
+    /// Set compression ratio.
+    #[inline]
+    pub fn with_ratio(mut self, ratio: f32) -> Self {
+        self.ratio = ratio;
+        self
+    }
+
+    /// Set attack time in milliseconds.
+    #[inline]
+    pub fn with_attack(mut self, ms: f32) -> Self {
+        self.attack_ms = ms;
+        self
+    }
+
+    /// Set release time in milliseconds.
+    #[inline]
+    pub fn with_release(mut self, ms: f32) -> Self {
+        self.release_ms = ms;
+        self
+    }
+
+    /// Set makeup gain in dB.
+    #[inline]
+    pub fn with_makeup_gain(mut self, db: f32) -> Self {
+        self.makeup_gain_db = db;
+        self
+    }
+
+    /// Set soft knee width in dB.
+    #[inline]
+    pub fn with_knee(mut self, db: f32) -> Self {
+        self.knee_db = db;
+        self
+    }
+
+    /// Set dry/wet mix.
+    #[inline]
+    pub fn with_mix(mut self, mix: f32) -> Self {
+        self.mix = mix;
+        self
+    }
+
     /// Validate parameters. Returns an error description if invalid.
     pub fn validate(&self) -> Result<(), &'static str> {
         if self.ratio < 1.0 {
@@ -62,6 +118,7 @@ impl CompressorParams {
 }
 
 /// Envelope-following dynamic range compressor.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct Compressor {
     params: CompressorParams,
@@ -81,6 +138,12 @@ impl Compressor {
                 value: String::new(),
                 reason: reason.into(),
             })?;
+        tracing::debug!(
+            sample_rate,
+            threshold_db = params.threshold_db,
+            ratio = params.ratio,
+            "Compressor: created"
+        );
         Ok(Self {
             params,
             envelope_db: -120.0,
@@ -169,13 +232,22 @@ impl Compressor {
         self.bypassed
     }
 
-    /// Update parameters.
-    pub fn set_params(&mut self, params: CompressorParams) {
+    /// Update parameters. Returns an error if parameters are invalid.
+    pub fn set_params(&mut self, params: CompressorParams) -> crate::Result<()> {
+        params
+            .validate()
+            .map_err(|reason| crate::NadaError::InvalidParameter {
+                name: "CompressorParams".into(),
+                value: String::new(),
+                reason: reason.into(),
+            })?;
         self.params = params;
+        Ok(())
     }
 
     /// Update the sample rate.
     pub fn set_sample_rate(&mut self, sample_rate: u32) {
+        tracing::debug!(sample_rate, "Compressor: sample rate updated");
         self.sample_rate = sample_rate;
     }
 

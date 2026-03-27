@@ -40,7 +40,9 @@ const GRAPHIC_EQ_Q: f32 = 1.4;
 const MAX_GAIN_DB: f32 = 12.0;
 
 /// Graphic EQ settings: per-band gain and enabled state.
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(default)]
 pub struct GraphicEqSettings {
     /// Gain per band in dB. Length is always 10.
@@ -124,6 +126,7 @@ impl GraphicEqSettings {
 /// Wraps [`ParametricEq`] with fixed ISO center frequencies at Q=1.4.
 /// Provides preset loading, per-band gain control, and efficient
 /// flat-detection bypass.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct GraphicEq {
     inner: ParametricEq,

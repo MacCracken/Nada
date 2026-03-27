@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::buffer::AudioBuffer;
 
 /// A fixed-length delay line with feedback and dry/wet mix.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct DelayLine {
     /// Per-channel circular buffers.
@@ -118,7 +119,9 @@ impl DelayLine {
 }
 
 /// Parameters for a modulated delay (chorus/flanger).
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(default)]
 pub struct ModulatedDelayParams {
     /// Base delay time in milliseconds.
@@ -171,6 +174,7 @@ impl ModulatedDelayParams {
 ///
 /// - **Chorus**: base_delay ~7ms, depth ~3ms, rate ~0.5Hz
 /// - **Flanger**: base_delay ~1ms, depth ~1ms, rate ~0.2–2Hz, higher feedback
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct ModulatedDelay {
     delay: DelayLine,

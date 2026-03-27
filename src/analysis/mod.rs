@@ -20,6 +20,7 @@ use crate::buffer::AudioBuffer;
 use crate::error::NadaError;
 
 /// Spectrum analysis result.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct Spectrum {
     /// Magnitude bins (linear scale, 0.0–1.0 normalized).
@@ -227,6 +228,7 @@ pub fn spectrum_dft(buf: &AudioBuffer, window_size: usize) -> crate::Result<Spec
 ///
 /// This is a simplified approximation — full R128 requires K-weighting filter
 /// and gated measurement. Suitable for relative comparisons.
+#[must_use]
 pub fn loudness_lufs(buf: &AudioBuffer) -> f32 {
     if buf.samples.is_empty() {
         return f32::NEG_INFINITY;
@@ -247,6 +249,7 @@ pub fn loudness_lufs(buf: &AudioBuffer) -> f32 {
 }
 
 /// Detect if a buffer is effectively silent (below threshold).
+#[must_use]
 pub fn is_silent(buf: &AudioBuffer, threshold_db: f32) -> bool {
     let peak_db = crate::dsp::amplitude_to_db(buf.peak());
     peak_db < threshold_db
@@ -276,6 +279,7 @@ pub fn is_silent(buf: &AudioBuffer, threshold_db: f32) -> bool {
 /// let gain = suggest_gain(&buf, 0.125);
 /// assert!(gain < 1.0); // loud signal → attenuate
 /// ```
+#[must_use]
 pub fn suggest_gain(buf: &AudioBuffer, target_rms: f32) -> f32 {
     let rms = buf.rms();
     if rms < 1e-6 {

@@ -16,6 +16,7 @@ pub type FramePos = u64;
 // ── MIDI 1.0 core types ────────────────────────────────────────────
 
 /// A note event (note-on with duration).
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NoteEvent {
     /// Start position in frames.
@@ -30,7 +31,27 @@ pub struct NoteEvent {
     pub channel: u8,
 }
 
+impl NoteEvent {
+    /// Create a new note event.
+    pub fn new(
+        position: FramePos,
+        duration: FramePos,
+        note: u8,
+        velocity: u8,
+        channel: u8,
+    ) -> Self {
+        Self {
+            position,
+            duration,
+            note,
+            velocity,
+            channel,
+        }
+    }
+}
+
 /// A control change event.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ControlChange {
     /// Position in frames.
@@ -41,6 +62,18 @@ pub struct ControlChange {
     pub value: u8,
     /// MIDI channel (0–15).
     pub channel: u8,
+}
+
+impl ControlChange {
+    /// Create a new control change event.
+    pub fn new(position: FramePos, controller: u8, value: u8, channel: u8) -> Self {
+        Self {
+            position,
+            controller,
+            value,
+            channel,
+        }
+    }
 }
 
 /// Unified MIDI event type for pattern matching.
@@ -121,6 +154,8 @@ impl MidiEvent {
 // ── MIDI Clip ───────────────────────────────────────────────────────
 
 /// A MIDI clip containing sorted note and CC events.
+#[must_use]
+#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MidiClip {
     /// Clip name.

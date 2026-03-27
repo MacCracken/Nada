@@ -19,7 +19,9 @@ pub enum BandType {
 }
 
 /// Configuration for a single EQ band.
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct EqBandConfig {
     pub band_type: BandType,
     pub freq_hz: f32,
@@ -29,6 +31,17 @@ pub struct EqBandConfig {
 }
 
 impl EqBandConfig {
+    /// Create a new EQ band configuration.
+    pub fn new(band_type: BandType, freq_hz: f32, gain_db: f32, q: f32, enabled: bool) -> Self {
+        Self {
+            band_type,
+            freq_hz,
+            gain_db,
+            q,
+            enabled,
+        }
+    }
+
     fn to_filter_type(&self) -> FilterType {
         match self.band_type {
             BandType::Peaking => FilterType::Peaking {
@@ -49,6 +62,7 @@ impl EqBandConfig {
 }
 
 /// N-band parametric equalizer — cascade of biquad filters.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct ParametricEq {
     bands: Vec<(EqBandConfig, BiquadFilter)>,
@@ -62,6 +76,12 @@ pub struct ParametricEq {
 impl ParametricEq {
     /// Create a parametric EQ with the given bands.
     pub fn new(bands: Vec<EqBandConfig>, sample_rate: u32, channels: u32) -> Self {
+        tracing::debug!(
+            sample_rate,
+            channels,
+            band_count = bands.len(),
+            "ParametricEq: created"
+        );
         let bands = bands
             .into_iter()
             .map(|cfg| {
@@ -144,7 +164,7 @@ impl ParametricEq {
     /// Remove a band by index.
     pub fn remove_band(&mut self, index: usize) {
         if index < self.bands.len() {
-            self.bands.remove(index);
+            drop(self.bands.remove(index));
         }
     }
 
@@ -187,6 +207,7 @@ impl ParametricEq {
 
     /// Update the sample rate and rebuild all filter coefficients.
     pub fn set_sample_rate(&mut self, sample_rate: u32) {
+        tracing::debug!(sample_rate, "ParametricEq: sample rate updated");
         self.sample_rate = sample_rate;
         for (cfg, filt) in &mut self.bands {
             filt.set_sample_rate(sample_rate);

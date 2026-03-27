@@ -5,6 +5,8 @@ use crate::buffer::AudioBuffer;
 use crate::error::NadaError;
 
 /// A spectrogram: time-frequency energy matrix.
+#[must_use]
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct Spectrogram {
     /// Magnitude frames: `frames[time_index][freq_bin]`.
@@ -48,6 +50,7 @@ impl Spectrogram {
 ///
 /// Returns `NadaError::Dsp` if the buffer is empty or `window_size` is not a power of two.
 pub fn stft(buf: &AudioBuffer, window_size: usize, hop_size: usize) -> crate::Result<Spectrogram> {
+    tracing::debug!(frames = buf.frames, window_size, hop_size, "stft: started");
     if buf.samples.is_empty() {
         return Err(NadaError::Dsp("cannot compute STFT on empty buffer".into()));
     }
@@ -59,7 +62,6 @@ pub fn stft(buf: &AudioBuffer, window_size: usize, hop_size: usize) -> crate::Re
     if hop_size == 0 {
         return Err(NadaError::Dsp("hop_size must be > 0".into()));
     }
-    let hop_size = hop_size.max(1);
     let num_bins = window_size / 2;
 
     // Pre-compute Hann window
@@ -76,10 +78,13 @@ pub fn stft(buf: &AudioBuffer, window_size: usize, hop_size: usize) -> crate::Re
 
     let mut frames = Vec::new();
     let mut pos = 0usize;
+    // Pre-allocate scratch buffers to avoid per-frame heap allocation
+    let mut real = vec![0.0f64; window_size];
+    let mut imag = vec![0.0f64; window_size];
 
     while pos + window_size <= total_mono_frames {
-        let mut real = vec![0.0f64; window_size];
-        let mut imag = vec![0.0f64; window_size];
+        real.fill(0.0);
+        imag.fill(0.0);
 
         for i in 0..window_size {
             real[i] = samples[(pos + i) * ch] as f64 * window[i];
@@ -114,6 +119,7 @@ pub fn stft(buf: &AudioBuffer, window_size: usize, hop_size: usize) -> crate::Re
 ///
 /// Reuse this struct when computing multiple STFTs with the same window size
 /// to avoid recomputing the window each time.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct StftProcessor {
     window: Vec<f64>,
@@ -144,6 +150,12 @@ impl StftProcessor {
 
     /// Compute a spectrogram using the cached window.
     pub fn compute(&self, buf: &AudioBuffer, hop_size: usize) -> crate::Result<Spectrogram> {
+        tracing::debug!(
+            frames = buf.frames,
+            window_size = self.window_size,
+            hop_size,
+            "StftProcessor::compute: started"
+        );
         if buf.samples.is_empty() {
             return Err(NadaError::Dsp("cannot compute STFT on empty buffer".into()));
         }
@@ -157,10 +169,13 @@ impl StftProcessor {
 
         let mut frames = Vec::new();
         let mut pos = 0usize;
+        // Pre-allocate scratch buffers to avoid per-frame heap allocation
+        let mut real = vec![0.0f64; self.window_size];
+        let mut imag = vec![0.0f64; self.window_size];
 
         while pos + self.window_size <= total_mono_frames {
-            let mut real = vec![0.0f64; self.window_size];
-            let mut imag = vec![0.0f64; self.window_size];
+            real.fill(0.0);
+            imag.fill(0.0);
 
             for i in 0..self.window_size {
                 real[i] = samples[(pos + i) * ch] as f64 * self.window[i];

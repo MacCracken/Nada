@@ -4,6 +4,8 @@ use crate::analysis::stft::stft;
 use crate::buffer::AudioBuffer;
 
 /// Onset detection result.
+#[must_use]
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct OnsetResult {
     /// Frame positions (in samples) of detected onsets.
@@ -27,6 +29,13 @@ pub fn detect_onsets(
     hop_size: usize,
     threshold: f32,
 ) -> crate::Result<OnsetResult> {
+    tracing::debug!(
+        frames = buf.frames,
+        window_size,
+        hop_size,
+        threshold,
+        "detect_onsets: started"
+    );
     let sg = stft(buf, window_size, hop_size)?;
 
     if sg.num_frames() < 2 {

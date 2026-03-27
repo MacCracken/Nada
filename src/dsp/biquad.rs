@@ -23,6 +23,7 @@ pub enum FilterType {
 }
 
 /// Biquad filter coefficients (Direct Form II Transposed).
+#[must_use]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct BiquadCoeffs {
     pub b0: f64,
@@ -135,6 +136,7 @@ struct BiquadState {
 }
 
 impl BiquadState {
+    #[inline]
     fn process(&mut self, input: f64, c: &BiquadCoeffs) -> f64 {
         let out = c.b0 * input + self.z1;
         self.z1 = c.b1 * input - c.a1 * out + self.z2;
@@ -144,6 +146,7 @@ impl BiquadState {
 }
 
 /// A biquad filter with per-channel state.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct BiquadFilter {
     coeffs: BiquadCoeffs,

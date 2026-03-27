@@ -6,7 +6,9 @@
 use serde::{Deserialize, Serialize};
 
 /// ADSR envelope parameters (times in seconds).
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(default)]
 pub struct AdsrParams {
     /// Attack time in seconds.
@@ -51,6 +53,7 @@ impl Default for AdsrParams {
 
 /// Envelope state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum EnvelopeState {
     Idle,
     Attack,
@@ -62,6 +65,7 @@ pub enum EnvelopeState {
 /// ADSR envelope generator.
 ///
 /// Call `trigger()` on note-on, `release()` on note-off, and `tick()` every sample.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct Envelope {
     params: AdsrParams,
@@ -101,6 +105,7 @@ impl Envelope {
     }
 
     /// Advance one sample and return the current level (0.0–1.0).
+    #[inline]
     pub fn tick(&mut self) -> f32 {
         match self.state {
             EnvelopeState::Idle => {
@@ -175,9 +180,17 @@ impl Envelope {
         self.stage_pos = 0;
     }
 
-    /// Update parameters.
-    pub fn set_params(&mut self, params: AdsrParams) {
+    /// Update parameters. Returns an error if parameters are invalid.
+    pub fn set_params(&mut self, params: AdsrParams) -> crate::Result<()> {
+        params
+            .validate()
+            .map_err(|reason| crate::NadaError::InvalidParameter {
+                name: "AdsrParams".into(),
+                value: String::new(),
+                reason: reason.into(),
+            })?;
         self.params = params;
+        Ok(())
     }
 }
 
@@ -296,7 +309,8 @@ mod tests {
             decay: 0.2,
             sustain: 0.3,
             release: 1.0,
-        });
+        })
+        .unwrap();
         env.trigger();
         // Should use new attack time
         env.tick();

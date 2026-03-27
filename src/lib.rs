@@ -22,6 +22,8 @@
 //! | [`midi`] | MIDI 1.0/2.0 events, clips, translation, voice management, routing *(feature: `midi`)* |
 //! | [`graph`] | RT-safe audio graph with topological execution and double-buffered plan swap *(feature: `graph`)* |
 //! | [`meter`] | Lock-free peak metering via atomics (no mutex) *(feature: `graph`)* |
+//! | [`synthesis`] | Synthesis engines: subtractive, FM, additive, wavetable, granular, physical, drum, vocoder *(feature: `synthesis`)* |
+//! | [`voice_synth`] | Voice synthesis: glottal source, formant, phoneme, prosody, vocal tract *(feature: `voice`)* |
 //! | [`capture`] | PipeWire capture/output, ring-buffer recording *(feature: `pipewire`)* |
 //!
 //! # Quick Start
@@ -38,17 +40,17 @@
 //!
 //! // 3-band parametric EQ
 //! let mut eq = ParametricEq::new(vec![
-//!     EqBandConfig { band_type: BandType::HighPass, freq_hz: 80.0, gain_db: 0.0, q: 0.707, enabled: true },
-//!     EqBandConfig { band_type: BandType::Peaking, freq_hz: 3000.0, gain_db: 3.0, q: 1.5, enabled: true },
-//!     EqBandConfig { band_type: BandType::HighShelf, freq_hz: 10000.0, gain_db: -2.0, q: 0.707, enabled: true },
+//!     EqBandConfig::new(BandType::HighPass, 80.0, 0.0, 0.707, true),
+//!     EqBandConfig::new(BandType::Peaking, 3000.0, 3.0, 1.5, true),
+//!     EqBandConfig::new(BandType::HighShelf, 10000.0, -2.0, 0.707, true),
 //! ], 44100, 2);
 //! eq.process(&mut mixed);
 //!
 //! // Compress and normalize
-//! let mut comp = Compressor::new(CompressorParams {
-//!     threshold_db: -18.0, ratio: 4.0, attack_ms: 10.0, release_ms: 100.0,
-//!     makeup_gain_db: 3.0, knee_db: 6.0, ..Default::default()
-//! }, 44100).unwrap();
+//! let mut comp = Compressor::new(CompressorParams::new()
+//!     .with_threshold(-18.0).with_ratio(4.0).with_attack(10.0).with_release(100.0)
+//!     .with_makeup_gain(3.0).with_knee(6.0),
+//! 44100).unwrap();
 //! comp.process(&mut mixed);
 //! dsp::normalize(&mut mixed, 0.95);
 //!
@@ -59,7 +61,7 @@
 //!
 //! ## Step 1: Create and manipulate buffers
 //!
-//! [`AudioBuffer`](buffer::AudioBuffer) is the core type. All audio is f32 interleaved internally.
+//! [`AudioBuffer`] is the core type. All audio is f32 interleaved internally.
 //!
 //! ```rust
 //! use dhvani::buffer::{AudioBuffer, mix, resample_linear};
@@ -84,7 +86,7 @@
 //!
 //! ## Step 2: Apply DSP effects
 //!
-//! All effects operate on [`AudioBuffer`](buffer::AudioBuffer) in-place.
+//! All effects operate on [`AudioBuffer`] in-place.
 //! Stateful effects (EQ, reverb, compressor) have `process()` methods.
 //! Stateless operations (gate, limiter, normalize) are free functions.
 //!
@@ -99,7 +101,7 @@
 //! lp.process(&mut buf);
 //!
 //! // Reverb
-//! let mut reverb = Reverb::new(ReverbParams { room_size: 0.6, damping: 0.4, mix: 0.3 }, 44100).unwrap();
+//! let mut reverb = Reverb::new(ReverbParams::new().with_room_size(0.6).with_damping(0.4).with_mix(0.3), 44100).unwrap();
 //! reverb.process(&mut buf);
 //!
 //! // Panning
@@ -223,8 +225,10 @@
 //! | `midi` | Yes | MIDI 1.0/2.0 events, voice management, routing, translation |
 //! | `graph` | Yes | RT-safe audio graph and lock-free metering |
 //! | `simd` | Yes | SSE2/AVX2 (x86_64) and NEON (aarch64) acceleration |
+//! | `synthesis` | No | Synthesis engines via [`naad`](https://crates.io/crates/naad): subtractive, FM, additive, wavetable, granular, physical modeling, drum, vocoder |
+//! | `voice` | No | Voice synthesis via [`svara`](https://crates.io/crates/svara): glottal source, formant, phoneme, prosody, vocal tract. Implies `synthesis` |
 //! | `pipewire` | No | PipeWire audio capture/output backend (Linux only) |
-//! | `full` | No | All features including PipeWire |
+//! | `full` | No | All features including synthesis, voice, and PipeWire |
 //!
 //! Core-only build (buffers, mixing, resampling, clock — no DSP/MIDI/analysis):
 //! ```toml
@@ -248,6 +252,10 @@ pub mod graph;
 pub mod meter;
 #[cfg(feature = "midi")]
 pub mod midi;
+#[cfg(feature = "synthesis")]
+pub mod synthesis;
+#[cfg(feature = "voice")]
+pub mod voice_synth;
 
 #[cfg(feature = "simd")]
 pub(crate) mod simd;

@@ -4,6 +4,8 @@ use crate::buffer::AudioBuffer;
 use crate::dsp::amplitude_to_db;
 
 /// Comprehensive per-channel dynamics analysis result.
+#[must_use]
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct DynamicsAnalysis {
     /// Peak amplitude per channel (linear).
@@ -76,6 +78,11 @@ impl DynamicsAnalysis {
 
 /// Analyze the dynamics of an audio buffer (per-channel).
 pub fn analyze_dynamics(buf: &AudioBuffer) -> DynamicsAnalysis {
+    tracing::debug!(
+        frames = buf.frames,
+        channels = buf.channels,
+        "analyze_dynamics: started"
+    );
     let ch = buf.channels as usize;
     let frames = buf.frames;
 
@@ -94,21 +101,38 @@ pub fn analyze_dynamics(buf: &AudioBuffer) -> DynamicsAnalysis {
             rms_sum[c] += (s as f64) * (s as f64);
         }
 
-        // True peak: 4x oversampled inter-sample detection
+        // True peak: 4x oversampled inter-sample detection using 4-point cubic Hermite
+        // interpolation. This detects inter-sample peaks that linear interpolation
+        // would miss. For full ITU-R BS.1770 compliance, a polyphase FIR is needed.
         if frames > 1 {
-            let mut tp = buf.samples[c].abs();
+            let mut tp = peak[c];
             for frame in 0..frames - 1 {
                 let s0 = buf.samples[frame * ch + c];
                 let s1 = buf.samples[(frame + 1) * ch + c];
-                tp = tp.max(s0.abs());
+                // Get surrounding samples for cubic interpolation
+                let sm1 = if frame > 0 {
+                    buf.samples[(frame - 1) * ch + c]
+                } else {
+                    s0
+                };
+                let s2 = if frame + 2 < frames {
+                    buf.samples[(frame + 2) * ch + c]
+                } else {
+                    s1
+                };
                 for k in 1..4u32 {
                     let t = k as f32 / 4.0;
-                    let interp = s0 + t * (s1 - s0);
+                    // Catmull-Rom / cubic Hermite interpolation
+                    let t2 = t * t;
+                    let t3 = t2 * t;
+                    let interp = 0.5
+                        * ((2.0 * s0)
+                            + (-sm1 + s1) * t
+                            + (2.0 * sm1 - 5.0 * s0 + 4.0 * s1 - s2) * t2
+                            + (-sm1 + 3.0 * s0 - 3.0 * s1 + s2) * t3);
                     tp = tp.max(interp.abs());
                 }
             }
-            // Last sample
-            tp = tp.max(buf.samples[(frames - 1) * ch + c].abs());
             true_peak[c] = tp;
         } else if frames == 1 {
             true_peak[c] = peak[c];

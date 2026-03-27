@@ -25,6 +25,7 @@ pub use record::{LoopRecordManager, RecordManager, RecordingMode};
 use serde::{Deserialize, Serialize};
 
 /// Description of an audio device (source or sink).
+#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioDevice {
     /// Device unique identifier.
@@ -50,6 +51,7 @@ pub enum DeviceType {
 }
 
 /// Configuration for a capture session.
+#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct CaptureConfig {
@@ -75,6 +77,7 @@ impl Default for CaptureConfig {
 }
 
 /// Configuration for an output session.
+#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct OutputConfig {

@@ -10,6 +10,7 @@ use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 /// A single stereo peak level stored as two atomic u32 (f32 bit patterns).
 ///
 /// Lock-free: safe to write from the RT thread and read from the UI thread.
+#[must_use]
 #[derive(Debug)]
 pub struct PeakMeter {
     left: AtomicU32,
@@ -26,12 +27,14 @@ impl PeakMeter {
     }
 
     /// Store a stereo peak level (call from RT thread).
+    #[inline]
     pub fn store(&self, left: f32, right: f32) {
         self.left.store(left.to_bits(), Ordering::Relaxed);
         self.right.store(right.to_bits(), Ordering::Relaxed);
     }
 
     /// Load the current stereo peak level (call from UI thread).
+    #[inline]
     pub fn load(&self) -> [f32; 2] {
         let l = f32::from_bits(self.left.load(Ordering::Relaxed));
         let r = f32::from_bits(self.right.load(Ordering::Relaxed));
@@ -49,6 +52,7 @@ impl Default for PeakMeter {
 ///
 /// Pre-allocates capacity at creation time. Slots can be activated
 /// up to capacity without reallocation.
+#[must_use]
 pub struct MeterBank {
     slots: Vec<PeakMeter>,
     active: AtomicUsize,
@@ -162,6 +166,7 @@ fn linear_to_db(linear: f32) -> f32 {
 /// integrated LUFS using simplified EBU R128 gating.
 ///
 /// Use for offline analysis, UI metering displays, and loudness monitoring.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct LevelMeter {
     /// Current peak level per channel (linear).
@@ -257,12 +262,13 @@ impl LevelMeter {
             }
         }
 
-        // Update peak hold with decay
+        // Update peak hold with decay (scale by frame count for buffer-size-independent rate)
+        let decay = self.peak_decay.powi(frames as i32);
         for ch in 0..self.channels {
             if self.peak[ch] > self.peak_hold[ch] {
                 self.peak_hold[ch] = self.peak[ch];
             } else {
-                self.peak_hold[ch] *= self.peak_decay;
+                self.peak_hold[ch] *= decay;
             }
         }
     }

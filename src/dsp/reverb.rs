@@ -17,7 +17,9 @@ const STEREO_OFFSET: usize = 23;
 const ALLPASS_FEEDBACK: f32 = 0.5;
 
 /// Reverb parameters.
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(default)]
 pub struct ReverbParams {
     /// Room size (0.0–1.0). Controls feedback amount.
@@ -29,6 +31,32 @@ pub struct ReverbParams {
 }
 
 impl ReverbParams {
+    /// Create reverb parameters with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set room size (0.0--1.0).
+    #[inline]
+    pub fn with_room_size(mut self, size: f32) -> Self {
+        self.room_size = size;
+        self
+    }
+
+    /// Set damping (0.0--1.0).
+    #[inline]
+    pub fn with_damping(mut self, damping: f32) -> Self {
+        self.damping = damping;
+        self
+    }
+
+    /// Set dry/wet mix (0.0--1.0).
+    #[inline]
+    pub fn with_mix(mut self, mix: f32) -> Self {
+        self.mix = mix;
+        self
+    }
+
     /// Validate parameters.
     pub fn validate(&self) -> Result<(), &'static str> {
         if !(0.0..=1.0).contains(&self.room_size) {
@@ -133,6 +161,7 @@ fn scale_delay(base: usize, sample_rate: u32) -> usize {
 }
 
 /// Schroeder/Freeverb reverb processor.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct Reverb {
     /// Left channel comb filters.
@@ -174,6 +203,12 @@ impl Reverb {
             .map(|&d| AllpassFilter::new(scale_delay(d + STEREO_OFFSET, sample_rate)))
             .collect();
 
+        tracing::debug!(
+            sample_rate,
+            room_size = params.room_size,
+            damping = params.damping,
+            "Reverb: created"
+        );
         let mut reverb = Self {
             combs_l,
             combs_r,
@@ -289,16 +324,25 @@ impl Reverb {
         self.bypassed
     }
 
-    /// Update reverb parameters.
-    pub fn set_params(&mut self, params: ReverbParams) {
+    /// Update reverb parameters. Returns an error if parameters are invalid.
+    pub fn set_params(&mut self, params: ReverbParams) -> crate::Result<()> {
+        params
+            .validate()
+            .map_err(|reason| crate::NadaError::InvalidParameter {
+                name: "ReverbParams".into(),
+                value: String::new(),
+                reason: reason.into(),
+            })?;
         self.update_params(&params);
         self.params = params;
+        Ok(())
     }
 
     /// Rebuild the reverb for a new sample rate.
     ///
     /// This reallocates internal buffers — call during session changes, not per-buffer.
     pub fn set_sample_rate(&mut self, sample_rate: u32) {
+        tracing::debug!(sample_rate, "Reverb: sample rate updated");
         // Rebuild with current params at new rate (ignore Result — params already validated)
         let was_bypassed = self.bypassed;
         if let Ok(new) = Self::new(self.params.clone(), sample_rate) {

@@ -20,6 +20,8 @@ pub enum VelocityCurve {
 
 impl VelocityCurve {
     /// Apply the velocity curve to a raw MIDI velocity value.
+    #[must_use]
+    #[inline]
     pub fn apply(&self, velocity: u8) -> u8 {
         match self {
             Self::Linear => velocity,
@@ -137,6 +139,7 @@ impl Default for MidiRoute {
 }
 
 /// Maps a MIDI CC number to a parameter value range.
+#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CcMapping {
     /// MIDI CC number (0–127).
@@ -161,12 +164,14 @@ impl CcMapping {
     }
 
     /// Map a 7-bit CC value (0–127) to the parameter range.
+    #[must_use]
     pub fn map_value(&self, cc_value: u8) -> f32 {
         let normalized = cc_value as f32 / 127.0;
         self.min_value + normalized * (self.max_value - self.min_value)
     }
 
     /// Map a 32-bit CC value (MIDI 2.0) to the parameter range.
+    #[must_use]
     pub fn map_value_32(&self, cc_value: u32) -> f32 {
         let normalized = cc_value as f64 / u32::MAX as f64;
         self.min_value + normalized as f32 * (self.max_value - self.min_value)

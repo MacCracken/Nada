@@ -4,6 +4,7 @@ use crate::NadaError;
 use crate::buffer::AudioBuffer;
 
 /// Convert i16 interleaved samples to f32 (-1.0 to ~1.0).
+#[must_use]
 pub fn i16_to_f32(samples: &[i16]) -> Vec<f32> {
     let mut dst = vec![0.0f32; samples.len()];
     #[cfg(feature = "simd")]
@@ -20,6 +21,7 @@ pub fn i16_to_f32(samples: &[i16]) -> Vec<f32> {
 }
 
 /// Convert f32 samples to i16 with clamping.
+#[must_use]
 pub fn f32_to_i16(samples: &[f32]) -> Vec<i16> {
     let mut dst = vec![0i16; samples.len()];
     #[cfg(feature = "simd")]
@@ -37,6 +39,7 @@ pub fn f32_to_i16(samples: &[f32]) -> Vec<i16> {
 }
 
 /// Convert i32 interleaved samples to f32 (-1.0 to ~1.0).
+#[must_use]
 pub fn i32_to_f32(samples: &[i32]) -> Vec<f32> {
     samples
         .iter()
@@ -45,6 +48,7 @@ pub fn i32_to_f32(samples: &[i32]) -> Vec<f32> {
 }
 
 /// Convert f32 samples to i32 with clamping.
+#[must_use]
 pub fn f32_to_i32(samples: &[f32]) -> Vec<i32> {
     samples
         .iter()
@@ -58,6 +62,7 @@ pub fn f32_to_i32(samples: &[f32]) -> Vec<i32> {
 /// Convert an interleaved AudioBuffer to planar representation.
 ///
 /// Returns one `Vec<f32>` per channel.
+#[must_use]
 pub fn interleaved_to_planar(buf: &AudioBuffer) -> Vec<Vec<f32>> {
     let ch = buf.channels as usize;
     let mut planes: Vec<Vec<f32>> = (0..ch).map(|_| Vec::with_capacity(buf.frames)).collect();
@@ -79,12 +84,19 @@ pub fn planar_to_interleaved(
     sample_rate: u32,
 ) -> Result<AudioBuffer, NadaError> {
     if channels.is_empty() {
+        tracing::warn!("planar_to_interleaved: empty channel list");
         return Err(NadaError::InvalidChannels(0));
     }
 
     let frames = channels[0].len();
     for (i, ch) in channels.iter().enumerate() {
         if ch.len() != frames {
+            tracing::warn!(
+                channel = i,
+                expected = frames,
+                actual = ch.len(),
+                "planar_to_interleaved: channel length mismatch"
+            );
             return Err(NadaError::Conversion(format!(
                 "channel {} has {} frames, expected {}",
                 i,
@@ -108,6 +120,10 @@ pub fn planar_to_interleaved(
 /// Duplicate mono buffer to stereo.
 pub fn mono_to_stereo(buf: &AudioBuffer) -> Result<AudioBuffer, NadaError> {
     if buf.channels != 1 {
+        tracing::warn!(
+            channels = buf.channels,
+            "mono_to_stereo: expected 1 channel"
+        );
         return Err(NadaError::Conversion(format!(
             "expected mono (1 channel), got {}",
             buf.channels
@@ -126,6 +142,10 @@ pub fn mono_to_stereo(buf: &AudioBuffer) -> Result<AudioBuffer, NadaError> {
 /// Mix stereo buffer down to mono (average of L and R).
 pub fn stereo_to_mono(buf: &AudioBuffer) -> Result<AudioBuffer, NadaError> {
     if buf.channels != 2 {
+        tracing::warn!(
+            channels = buf.channels,
+            "stereo_to_mono: expected 2 channels"
+        );
         return Err(NadaError::Conversion(format!(
             "expected stereo (2 channels), got {}",
             buf.channels
@@ -144,6 +164,7 @@ pub fn stereo_to_mono(buf: &AudioBuffer) -> Result<AudioBuffer, NadaError> {
 
 /// Convert 24-bit signed integers (stored as i32, only lower 24 bits used) to f32.
 /// Range: [-8388608, 8388607] -> [-1.0, 1.0)
+#[must_use]
 pub fn i24_to_f32(samples: &[i32]) -> Vec<f32> {
     samples
         .iter()
@@ -157,6 +178,7 @@ pub fn i24_to_f32(samples: &[i32]) -> Vec<f32> {
 
 /// Convert f32 to 24-bit signed integers (stored as i32).
 /// Input clamped to [-1.0, 1.0].
+#[must_use]
 pub fn f32_to_i24(samples: &[f32]) -> Vec<i32> {
     samples
         .iter()
@@ -168,6 +190,7 @@ pub fn f32_to_i24(samples: &[f32]) -> Vec<i32> {
 }
 
 /// Convert 24-bit packed bytes (3 bytes per sample, little-endian) to f32.
+#[must_use]
 pub fn i24_packed_to_f32(bytes: &[u8]) -> Vec<f32> {
     bytes
         .chunks_exact(3)
@@ -182,6 +205,7 @@ pub fn i24_packed_to_f32(bytes: &[u8]) -> Vec<f32> {
 }
 
 /// Convert f32 to 24-bit packed bytes (3 bytes per sample, little-endian).
+#[must_use]
 pub fn f32_to_i24_packed(samples: &[f32]) -> Vec<u8> {
     let mut out = Vec::with_capacity(samples.len() * 3);
     for &s in samples {
@@ -195,17 +219,20 @@ pub fn f32_to_i24_packed(samples: &[f32]) -> Vec<u8> {
 }
 
 /// Convert f64 samples to f32.
+#[must_use]
 pub fn f64_to_f32(samples: &[f64]) -> Vec<f32> {
     samples.iter().map(|&s| s as f32).collect()
 }
 
 /// Convert f32 samples to f64.
+#[must_use]
 pub fn f32_to_f64(samples: &[f32]) -> Vec<f64> {
     samples.iter().map(|&s| f64::from(s)).collect()
 }
 
 /// Convert unsigned 8-bit PCM to f32.
 /// u8 range [0, 255] maps to f32 range [-1.0, 1.0), centered at 128.
+#[must_use]
 pub fn u8_to_f32(samples: &[u8]) -> Vec<f32> {
     samples
         .iter()
@@ -215,6 +242,7 @@ pub fn u8_to_f32(samples: &[u8]) -> Vec<f32> {
 
 /// Convert f32 to unsigned 8-bit PCM.
 /// f32 range [-1.0, 1.0] maps to u8 range [0, 255], centered at 128.
+#[must_use]
 pub fn f32_to_u8(samples: &[f32]) -> Vec<u8> {
     samples
         .iter()
@@ -237,6 +265,10 @@ pub fn f32_to_u8(samples: &[f32]) -> Vec<u8> {
 /// LFE is discarded (standard practice for non-bass-managed systems).
 pub fn downmix_5_1_to_stereo(buf: &AudioBuffer) -> Result<AudioBuffer, NadaError> {
     if buf.channels != 6 {
+        tracing::warn!(
+            channels = buf.channels,
+            "downmix_5_1_to_stereo: expected 6 channels"
+        );
         return Err(NadaError::Conversion(format!(
             "expected 5.1 (6 channels), got {}",
             buf.channels

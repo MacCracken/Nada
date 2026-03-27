@@ -37,6 +37,14 @@ pub fn resample_sinc(
     target_rate: u32,
     quality: ResampleQuality,
 ) -> Result<AudioBuffer, NadaError> {
+    tracing::debug!(
+        source_rate = buf.sample_rate,
+        target_rate,
+        frames = buf.frames,
+        channels = buf.channels,
+        quality = ?quality,
+        "resample_sinc: started"
+    );
     if target_rate == 0 {
         return Err(NadaError::InvalidSampleRate(0));
     }

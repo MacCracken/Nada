@@ -2,6 +2,7 @@
 
 use thiserror::Error;
 
+#[must_use]
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum NadaError {

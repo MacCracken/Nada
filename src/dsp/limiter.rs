@@ -6,7 +6,9 @@ use crate::buffer::AudioBuffer;
 use crate::dsp::{amplitude_to_db, db_to_amplitude};
 
 /// Limiter parameters.
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(default)]
 pub struct LimiterParams {
     /// Ceiling in dB (maximum output level, typically -0.1 to -1.0 dBFS).
@@ -31,6 +33,39 @@ impl Default for LimiterParams {
 }
 
 impl LimiterParams {
+    /// Create limiter parameters with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set ceiling in dB.
+    #[inline]
+    pub fn with_ceiling(mut self, db: f32) -> Self {
+        self.ceiling_db = db;
+        self
+    }
+
+    /// Set release time in milliseconds.
+    #[inline]
+    pub fn with_release(mut self, ms: f32) -> Self {
+        self.release_ms = ms;
+        self
+    }
+
+    /// Set knee width in dB.
+    #[inline]
+    pub fn with_knee(mut self, db: f32) -> Self {
+        self.knee_db = db;
+        self
+    }
+
+    /// Set dry/wet mix.
+    #[inline]
+    pub fn with_mix(mut self, mix: f32) -> Self {
+        self.mix = mix;
+        self
+    }
+
     /// Validate parameters.
     pub fn validate(&self) -> Result<(), &'static str> {
         if self.ceiling_db > 0.0 {
@@ -50,6 +85,7 @@ impl LimiterParams {
 ///
 /// Ensures output never exceeds the ceiling. Uses instant attack
 /// (true peak limiting) and configurable release.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct EnvelopeLimiter {
     params: LimiterParams,
@@ -68,6 +104,11 @@ impl EnvelopeLimiter {
                 value: String::new(),
                 reason: reason.into(),
             })?;
+        tracing::debug!(
+            sample_rate,
+            ceiling_db = params.ceiling_db,
+            "EnvelopeLimiter: created"
+        );
         Ok(Self {
             params,
             envelope_db: -120.0,
@@ -148,13 +189,22 @@ impl EnvelopeLimiter {
         self.compute_gain(self.envelope_db)
     }
 
-    /// Update parameters.
-    pub fn set_params(&mut self, params: LimiterParams) {
+    /// Update parameters. Returns an error if parameters are invalid.
+    pub fn set_params(&mut self, params: LimiterParams) -> crate::Result<()> {
+        params
+            .validate()
+            .map_err(|reason| crate::NadaError::InvalidParameter {
+                name: "LimiterParams".into(),
+                value: String::new(),
+                reason: reason.into(),
+            })?;
         self.params = params;
+        Ok(())
     }
 
     /// Update the sample rate.
     pub fn set_sample_rate(&mut self, sample_rate: u32) {
+        tracing::debug!(sample_rate, "EnvelopeLimiter: sample rate updated");
         self.sample_rate = sample_rate;
     }
 
@@ -265,12 +315,14 @@ mod tests {
     #[test]
     fn set_params_updates() {
         let mut limiter = EnvelopeLimiter::new(LimiterParams::default(), 44100).unwrap();
-        limiter.set_params(LimiterParams {
-            ceiling_db: -3.0,
-            release_ms: 100.0,
-            knee_db: 3.0,
-            ..Default::default()
-        });
+        limiter
+            .set_params(LimiterParams {
+                ceiling_db: -3.0,
+                release_ms: 100.0,
+                knee_db: 3.0,
+                ..Default::default()
+            })
+            .unwrap();
         let mut buf = make_sine(1.0, 2048);
         limiter.process(&mut buf);
         assert!(buf.samples.iter().all(|s| s.is_finite()));
