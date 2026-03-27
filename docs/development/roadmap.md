@@ -87,10 +87,81 @@ All must be true:
 
 ---
 
-## Post-v1
+## Post-v1 — Synthesis Engines (v2.0 scope)
+
+**Vision**: Dhvani expands from audio engine to complete sound generation platform. All synthesis lives here — consumers (shruti, jalwa, kiran, joshua, vansh, SY) get it for free. The LLM decides *what* to say or play; dhvani handles *how* it sounds. Pure math, no neural network inference in the audio path.
+
+**Migration**: Synthesis code currently in shruti-instruments (subtractive synth, drum machine, sampler, oscillator, voice management, filter, envelope, LFO, mod matrix) migrates into dhvani as shared modules. Shruti becomes a thin UI/preset/DAW layer over dhvani's synthesis engines.
+
+### Synthesis Engines
+
+| # | Engine | Effort | Notes |
+|---|--------|--------|-------|
+| 1 | **Subtractive synth** | Medium | Migrate from shruti-instruments: 3-osc PolyBLEP, dual ADSR, SVF filter, dual LFO, mod matrix (8×8), unison, hard sync, ring mod, FM. Already proven with 1963 tests in shruti |
+| 2 | **FM synth** | Large | 4–6 operator FM, algorithm selection (DX7-style: 32 algorithms), ratio/detune/feedback per operator, FM matrix routing, velocity→operator level scaling |
+| 3 | **Additive synth** | Large | 64–256 harmonic partials with individual amplitude envelopes, spectral editing (draw/morph), resynthesis from audio (FFT→partials via existing analysis module), real-time partial manipulation |
+| 4 | **Wavetable synth** | Large | Wavetable loading (.wav frames, single-cycle), wavetable morphing (smooth interpolation between frames), position modulation via LFO/envelope, built-in factory tables (analog, digital, vocal, organic) |
+| 5 | **Physical modeling synth** | Large | Karplus-Strong string model, waveguide resonators (plucked/bowed/struck), exciter types (noise burst, impulse, bow), body resonance modeling, material parameters (brightness, decay, stiffness) |
+| 6 | **Granular synth** | Large | Grain cloud engine (position, density, size, pitch, spread), real-time granulation of loaded samples, freeze/scatter/spray modes, per-grain envelope (Gaussian/trapezoid), stereo grain panning |
+| 7 | **Drum synth** | Medium | Migrate drum machine core from shruti-instruments: 16-pad engine, velocity layers, per-pad effects. Sample-based + synthetic (sine kick, noise snare, metallic hi-hat) |
+| 8 | **Sampler engine** | Medium | Migrate from shruti-instruments: key/velocity zones, sample editing, slice mode (onset detection via existing analysis), time-stretching (granular OLA), SFZ/SF2 import |
+
+### Voice Synthesis Engine (v2.0 scope)
+
+**Goal**: Deterministic, real-time voice generation from phoneme sequences. The LLM (hoosh) generates text and intent; dhvani produces the acoustic speech signal. No neural TTS, no vendor lock-in. Pure DSP.
+
+**Why in dhvani**: Voice is sound. Every consumer that needs speech — vansh (voice shell), SY (agent speech), joshua (NPC dialogue), kiran (game characters) — depends on dhvani already. One implementation, audited once, benchmarked once. Personality-driven prosody via bhava modulation is composition, not new code.
+
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| 1 | **Formant synthesis** | Large | Model vocal tract as cascaded resonant filters (SVF already exists). 5 formant frequencies (F1–F5) define each vowel. Formant targets for all English phonemes (IPA table). Interpolation between formant sets for coarticulation |
+| 2 | **Glottal source model** | Medium | LF (Liljencrants-Fant) glottal pulse model. Parameters: fundamental frequency (F0), open quotient, spectral tilt. Replaces simple oscillator as voice excitation source |
+| 3 | **Noise source** | Small | Aspiration noise for fricatives (/s/, /f/, /h/), plosive bursts (/p/, /t/, /k/). Shaped by formant filter bank for correct spectral coloring |
+| 4 | **Phoneme sequencer** | Medium | Takes phoneme sequence + timing + stress markers. Interpolates formant targets between phonemes (coarticulation). Handles consonant-vowel transitions, diphthongs |
+| 5 | **Prosody engine** | Medium | F0 contour generation from stress/intonation markers. Speaking rate control. Emphasis (louder + slower + wider pitch). Question intonation (rising F0). Statement (falling F0). Excitement (wider F0 range, faster rate) |
+| 6 | **Bhava integration** | Medium | Personality-driven voice parameters. Emotional state modulates voice in real-time: anxious → faster rate, higher F0, breathier. Confident → slower, lower F0, fuller resonance. Sad → slower, narrow F0 range, softer. Maps bhava mood vector to prosody + formant parameters |
+| 7 | **Vocoder** | Large | 16–32 band analysis/synthesis filter bank. Carrier (synth oscillator or noise) + modulator (mic/audio input). Band envelope followers, sibilance detection, formant shift, unvoiced noise injection, freeze mode |
+| 8 | **Articulatory modeling** | Very Large | Physical model of vocal tract (tongue, lips, jaw, velum). Waveguide resonators (same math as physical modeling synth). Most realistic but most expensive. Future — start with formant synthesis, graduate to articulatory when demand justifies |
+
+#### Voice synthesis data flow
+
+```
+hoosh (LLM) → "Hello, how are you?" (text)
+    ↓ text-to-phoneme (lookup table or rules-based, no ML)
+phoneme sequence: [h ɛ l oʊ | h aʊ | ɑːr | j uː]
+    ↓ + prosody markers (stress, intonation from intent)
+    ↓ + bhava modulation (personality → F0 range, rate, breathiness)
+dhvani voice synth:
+    ├── glottal source (LF model, F0 from prosody)
+    ├── noise source (aspiration, plosives)
+    └── formant filter bank (F1-F5 interpolating between phoneme targets)
+    ↓ audio samples (f32, sample rate)
+dhvani output → speaker / PipeWire / recording
+```
+
+#### Consumers
+
+| Consumer | Use Case |
+|----------|----------|
+| **vansh** | Voice AI shell — TTS output for agnoshi responses. Personality via bhava |
+| **SY** (SecureYeoman) | Agent speech — T.Ron, Friday speak with distinct voices shaped by bhava presets |
+| **joshua** | NPC dialogue — game characters with personality-driven voices, emotional reactivity |
+| **kiran** | Game engine — character voices, narrator, environmental speech |
+| **shruti** | Vocoder effect in DAW, voice synthesis as instrument |
+| **hoosh** | Audio response mode — speak inference results instead of text |
+
+### Goonj Integration (acoustics engine)
+
+- [ ] **Convolution reverb from goonj IR**: Use `goonj::integration::dhvani::generate_dhvani_ir()` to produce room-specific impulse responses; convolve with dry signal via dhvani DSP chain
+- [ ] **Per-band reverb**: Consume `goonj::impulse::MultibandIr` for frequency-dependent convolution (8-band: 63–8000 Hz)
+- [ ] **FDN reverb**: Use `goonj::fdn::Fdn` for efficient real-time late reverberation (alternative to convolution)
+- [ ] **Ambisonics output**: Use `goonj::ambisonics::BFormatIr` for spatial reverb encoding
+- [ ] **WAV IR export**: Use `goonj::wav::write_wav_mono()` to export goonj IRs as WAV files for offline reverb processing
+- [ ] **Room presets**: Curate goonj room configurations (concert hall, studio, bathroom, cathedral) as dhvani reverb presets
 
 ### Advanced DSP
-- [ ] Convolution reverb (impulse response)
+
+- [ ] Convolution reverb engine (core DSP — goonj provides the impulse responses, dhvani provides the convolution)
 - [ ] Multiband compressor
 - [ ] Noise suppression (RNNoise or custom)
 - [ ] Pitch shifting (phase vocoder)
@@ -127,6 +198,8 @@ All must be true:
 
 - **Audio I/O (file read/write)** — tarang / symphonia
 - **Plugin hosting (VST/CLAP/LV2)** — shruti
-- **Music composition / sequencing** — shruti
+- **Music composition / sequencing / timeline** — shruti
 - **Streaming protocols (RTMP/SRT)** — aethersafta
-- **Specific instruments** — shruti; dhvani provides voice management, consumers build on top
+- **DAW UI / preset management** — shruti; dhvani provides engines, consumers build UX on top
+- **Neural TTS / ML-based voice** — hoosh handles LLM inference; dhvani does deterministic DSP only
+- **Text-to-phoneme ML models** — rules-based or lookup table in dhvani; ML phoneme prediction is hoosh territory
