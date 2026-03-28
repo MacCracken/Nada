@@ -24,6 +24,8 @@
 //! | [`meter`] | Lock-free peak metering via atomics (no mutex) *(feature: `graph`)* |
 //! | [`synthesis`] | Synthesis engines: subtractive, FM, additive, wavetable, granular, physical, drum, vocoder *(feature: `synthesis`)* |
 //! | [`voice_synth`] | Voice synthesis: glottal source, formant, phoneme, prosody, vocal tract *(feature: `voice`)* |
+//! | [`creature`] | Creature/animal vocal synthesis: species-specific voice models, call patterns *(feature: `creature`)* |
+//! | [`sampler`] | Sample playback engine: key/velocity zones, loop modes, time-stretching *(feature: `sampler`)* |
 //! | [`capture`] | PipeWire capture/output, ring-buffer recording *(feature: `pipewire`)* |
 //!
 //! # Quick Start
@@ -227,6 +229,8 @@
 //! | `simd` | Yes | SSE2/AVX2 (x86_64) and NEON (aarch64) acceleration |
 //! | `synthesis` | No | Synthesis engines via [`naad`](https://crates.io/crates/naad): subtractive, FM, additive, wavetable, granular, physical modeling, drum, vocoder |
 //! | `voice` | No | Voice synthesis via [`svara`](https://crates.io/crates/svara): glottal source, formant, phoneme, prosody, vocal tract. Implies `synthesis` |
+//! | `creature` | No | Creature/animal vocals via [`prani`](https://crates.io/crates/prani): species voice models, call patterns, non-human tracts. Implies `synthesis` |
+//! | `sampler` | No | Sample playback via [`nidhi`](https://crates.io/crates/nidhi): key/velocity zones, loop modes, SFZ/SF2 import |
 //! | `pipewire` | No | PipeWire audio capture/output backend (Linux only) |
 //! | `full` | No | All features including synthesis, voice, and PipeWire |
 //!
@@ -256,6 +260,10 @@ pub mod midi;
 pub mod synthesis;
 #[cfg(feature = "voice")]
 pub mod voice_synth;
+#[cfg(feature = "creature")]
+pub mod creature;
+#[cfg(feature = "sampler")]
+pub mod sampler;
 
 #[cfg(feature = "simd")]
 pub(crate) mod simd;

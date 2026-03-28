@@ -21,11 +21,13 @@ midi = []
 graph = []
 synthesis = ["dep:naad"]                # Synthesis engines: subtractive, FM, additive, wavetable, granular, physical, drum, vocoder
 voice = ["dep:svara", "synthesis"]      # Voice synthesis: glottal source, formant, phoneme, prosody, vocal tract
+creature = ["dep:prani", "synthesis"]   # Creature/animal vocal synthesis: species-specific voice models, call patterns
+sampler = ["dep:nidhi"]                 # Sample playback engine: key/velocity zones, loop modes, time-stretching
 # Platform
 simd = []
 pipewire = ["dep:pipewire"]
 # Bundles
-full = ["simd", "dsp", "analysis", "midi", "graph", "synthesis", "voice", "pipewire"]
+full = ["simd", "dsp", "analysis", "midi", "graph", "synthesis", "voice", "creature", "sampler", "pipewire"]
 
 [dependencies]
 abaco = { version = "1.0.0", path = "../abaco" }
@@ -36,6 +38,8 @@ tracing = "0.1"
 # Synthesis
 naad = { version = "1.0.0", optional = true }
 svara = { version = "1.0.0", optional = true, default-features = false, features = ["naad-backend"] }
+prani = { version = "1.0.0", optional = true, default-features = false }
+nidhi = { version = "0.1.0", path = "../nidhi", optional = true, default-features = false }
 
 # Audio capture
 pipewire = { version = "0.9", optional = true }
@@ -95,3 +99,7 @@ required-features = ["synthesis"]
 [[example]]
 name = "voice"
 required-features = ["voice"]
+
+[[example]]
+name = "creature"
+required-features = ["creature"]
