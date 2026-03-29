@@ -437,9 +437,9 @@ checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
 name = "goonj"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "082ebff59fe4b3efa3ac990420a0cb25e6da85a5283fbd4d1b1149dcb9036f26"
+checksum = "ecdccbeccfdef07f5afd4df2546317534c0910d618811e933382797f9c761730"
 dependencies = [
  "hisab 0.24.3",
  "serde",
