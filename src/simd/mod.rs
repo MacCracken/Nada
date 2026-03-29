@@ -324,6 +324,117 @@ mod tests {
     }
 
     #[test]
+    fn weighted_sum_basic() {
+        let samples = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        let weights = vec![0.5, 0.5, 0.5, 0.5, 0.5];
+        let (sum, wt) = weighted_sum(&samples, &weights);
+        assert!((sum - 7.5).abs() < 1e-4, "weighted_sum={sum}");
+        assert!((wt - 2.5).abs() < 1e-4, "weight_sum={wt}");
+    }
+
+    #[test]
+    fn weighted_sum_unequal_weights() {
+        let samples = vec![1.0, 2.0, 3.0];
+        let weights = vec![1.0, 0.0, 0.5];
+        let (sum, wt) = weighted_sum(&samples, &weights);
+        assert!((sum - 2.5).abs() < 1e-4);
+        assert!((wt - 1.5).abs() < 1e-4);
+    }
+
+    /// Verify SIMD paths match scalar fallbacks for all kernels.
+    #[test]
+    fn simd_scalar_parity() {
+        let data: Vec<f32> = (0..1025).map(|i| (i as f32 * 0.01).sin() * 0.9).collect();
+
+        // peak_abs
+        let simd_peak = peak_abs(&data);
+        let scalar_peak = super::peak_abs_scalar(&data);
+        assert!(
+            (simd_peak - scalar_peak).abs() < 1e-6,
+            "peak_abs: simd={simd_peak} scalar={scalar_peak}"
+        );
+
+        // sum_of_squares
+        let simd_sos = sum_of_squares(&data);
+        let scalar_sos = super::sum_of_squares_scalar(&data);
+        assert!(
+            (simd_sos - scalar_sos).abs() < 1e-3,
+            "sum_of_squares: simd={simd_sos} scalar={scalar_sos}"
+        );
+
+        // add_buffers
+        let mut simd_dst = vec![1.0f32; data.len()];
+        let mut scalar_dst = simd_dst.clone();
+        add_buffers(&mut simd_dst, &data);
+        super::add_buffers_scalar(&mut scalar_dst, &data);
+        assert_eq!(simd_dst, scalar_dst, "add_buffers mismatch");
+
+        // apply_gain
+        let mut simd_gain = data.clone();
+        let mut scalar_gain = data.clone();
+        apply_gain(&mut simd_gain, 0.75);
+        super::apply_gain_scalar(&mut scalar_gain, 0.75);
+        for (i, (s, sc)) in simd_gain.iter().zip(scalar_gain.iter()).enumerate() {
+            assert!(
+                (s - sc).abs() < 1e-6,
+                "apply_gain[{i}]: simd={s} scalar={sc}"
+            );
+        }
+
+        // clamp
+        let mut simd_clamp: Vec<f32> = data.iter().map(|s| s * 2.0).collect();
+        let mut scalar_clamp = simd_clamp.clone();
+        clamp(&mut simd_clamp, -0.5, 0.5);
+        super::clamp_scalar(&mut scalar_clamp, -0.5, 0.5);
+        assert_eq!(simd_clamp, scalar_clamp, "clamp mismatch");
+
+        // noise_gate
+        let mut simd_gate = data.clone();
+        let mut scalar_gate = data.clone();
+        noise_gate(&mut simd_gate, 0.3);
+        super::noise_gate_scalar(&mut scalar_gate, 0.3);
+        assert_eq!(simd_gate, scalar_gate, "noise_gate mismatch");
+
+        // i16_to_f32 / f32_to_i16 roundtrip parity
+        let i16_data: Vec<i16> = (0..1025).map(|i| ((i * 31) % 65536) as i16).collect();
+        let mut simd_f32 = vec![0.0f32; i16_data.len()];
+        let mut scalar_f32 = vec![0.0f32; i16_data.len()];
+        i16_to_f32(&i16_data, &mut simd_f32);
+        super::i16_to_f32_scalar(&i16_data, &mut scalar_f32);
+        for (i, (s, sc)) in simd_f32.iter().zip(scalar_f32.iter()).enumerate() {
+            assert!(
+                (s - sc).abs() < 1e-6,
+                "i16_to_f32[{i}]: simd={s} scalar={sc}"
+            );
+        }
+
+        let mut simd_i16 = vec![0i16; simd_f32.len()];
+        let mut scalar_i16 = vec![0i16; scalar_f32.len()];
+        f32_to_i16(&simd_f32, &mut simd_i16);
+        super::f32_to_i16_scalar(&scalar_f32, &mut scalar_i16);
+        // Allow ±1 difference: SIMD uses round-to-nearest, scalar uses truncation
+        for (i, (s, sc)) in simd_i16.iter().zip(scalar_i16.iter()).enumerate() {
+            assert!(
+                (*s as i32 - *sc as i32).abs() <= 1,
+                "f32_to_i16[{i}]: simd={s} scalar={sc}"
+            );
+        }
+
+        // weighted_sum
+        let weights: Vec<f32> = (0..data.len()).map(|i| (i as f32 * 0.003).cos()).collect();
+        let (simd_ws, simd_wt) = weighted_sum(&data, &weights);
+        let (scalar_ws, scalar_wt) = super::weighted_sum_scalar(&data, &weights);
+        assert!(
+            (simd_ws - scalar_ws).abs() < 1e-2,
+            "weighted_sum: simd={simd_ws} scalar={scalar_ws}"
+        );
+        assert!(
+            (simd_wt - scalar_wt).abs() < 1e-2,
+            "weight_sum: simd={simd_wt} scalar={scalar_wt}"
+        );
+    }
+
+    #[test]
     fn various_buffer_sizes() {
         for size in [0, 1, 3, 4, 7, 8, 15, 16, 17] {
             let mut dst = vec![1.0f32; size];

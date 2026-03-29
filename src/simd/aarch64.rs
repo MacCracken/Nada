@@ -34,18 +34,13 @@ pub fn noise_gate(samples: &mut [f32], threshold: f32) {
 }
 
 pub fn i16_to_f32(src: &[i16], dst: &mut [f32]) {
-    let len = src.len().min(dst.len());
-    for i in 0..len {
-        dst[i] = src[i] as f32 / 32768.0;
-    }
+    // SAFETY: NEON is always available on aarch64; calling the matching target_feature(enable="neon") function.
+    unsafe { i16_to_f32_neon(src, dst) };
 }
 
 pub fn f32_to_i16(src: &[f32], dst: &mut [i16]) {
-    let len = src.len().min(dst.len());
-    for i in 0..len {
-        let clamped = src[i].clamp(-1.0, 1.0);
-        dst[i] = (clamped * 32767.0) as i16;
-    }
+    // SAFETY: NEON is always available on aarch64; calling the matching target_feature(enable="neon") function.
+    unsafe { f32_to_i16_neon(src, dst) };
 }
 
 pub fn weighted_sum(samples: &[f32], weights: &[f32]) -> (f32, f32) {
@@ -234,4 +229,62 @@ unsafe fn weighted_sum_neon(samples: &[f32], weights: &[f32]) -> (f32, f32) {
         total_wt += weights[i];
     }
     (total_sum, total_wt)
+}
+
+#[cfg(target_arch = "aarch64")]
+#[target_feature(enable = "neon")]
+unsafe fn i16_to_f32_neon(src: &[i16], dst: &mut [f32]) {
+    let len = src.len().min(dst.len());
+    // SAFETY: NEON intrinsic to broadcast a scalar; no memory access. NEON is always available on aarch64.
+    let scale = unsafe { vdupq_n_f32(1.0 / 32768.0) };
+
+    let chunks = len / 4;
+    for i in 0..chunks {
+        let off = i * 4;
+        // SAFETY: Loading 4 i16s from slice with bounds checked by loop range.
+        // vld1_s16 loads 4 × i16. vmovl_s16 widens to 4 × i32. vcvtq_f32_s32 converts to 4 × f32.
+        // Storing to slice with bounds checked by loop range.
+        unsafe {
+            let ints_16 = vld1_s16(src.as_ptr().add(off));
+            let ints_32 = vmovl_s16(ints_16);
+            let floats = vcvtq_f32_s32(ints_32);
+            let scaled = vmulq_f32(floats, scale);
+            vst1q_f32(dst.as_mut_ptr().add(off), scaled);
+        }
+    }
+    for i in (chunks * 4)..len {
+        dst[i] = src[i] as f32 / 32768.0;
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+#[target_feature(enable = "neon")]
+unsafe fn f32_to_i16_neon(src: &[f32], dst: &mut [i16]) {
+    let len = src.len().min(dst.len());
+    // SAFETY: NEON intrinsic to broadcast a scalar; no memory access. NEON is always available on aarch64.
+    let vmin = unsafe { vdupq_n_f32(-1.0) };
+    // SAFETY: NEON intrinsic to broadcast a scalar; no memory access. NEON is always available on aarch64.
+    let vmax = unsafe { vdupq_n_f32(1.0) };
+    // SAFETY: NEON intrinsic to broadcast a scalar; no memory access. NEON is always available on aarch64.
+    let scale = unsafe { vdupq_n_f32(32767.0) };
+
+    let chunks = len / 4;
+    for i in 0..chunks {
+        let off = i * 4;
+        // SAFETY: Loading from slice with bounds checked by loop range. NEON is always available on aarch64.
+        // vminq/vmaxq clamps. vmulq scales. vcvtq_s32_f32 converts to i32. vqmovn_s32 saturating narrows to i16.
+        // Storing to slice with bounds checked by loop range.
+        unsafe {
+            let a = vld1q_f32(src.as_ptr().add(off));
+            let clamped = vminq_f32(vmaxq_f32(a, vmin), vmax);
+            let scaled = vmulq_f32(clamped, scale);
+            let ints = vcvtq_s32_f32(scaled);
+            let narrow = vqmovn_s32(ints);
+            vst1_s16(dst.as_mut_ptr().add(off), narrow);
+        }
+    }
+    for i in (chunks * 4)..len {
+        let clamped = src[i].clamp(-1.0, 1.0);
+        dst[i] = (clamped * 32767.0) as i16;
+    }
 }
