@@ -615,9 +615,9 @@ dependencies = [
 
 [[package]]
 name = "nidhi"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec93f2869eae3f04876a2b590f5906d48cb29f00ea5646b81f93da79f8c31fa5"
+checksum = "617fe0519c63754888ded1945fa9757828768a78491c88e6f3c2de5dcb39cb8c"
 dependencies = [
  "hisab",
  "serde",
