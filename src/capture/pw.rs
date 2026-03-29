@@ -706,9 +706,7 @@ mod tests {
         let sr = 48000u32;
         let frames = 4800; // 100ms
         let samples: Vec<f32> = (0..frames * 2)
-            .map(|i| {
-                (2.0 * std::f32::consts::PI * 440.0 * (i / 2) as f32 / sr as f32).sin() * 0.3
-            })
+            .map(|i| (2.0 * std::f32::consts::PI * 440.0 * (i / 2) as f32 / sr as f32).sin() * 0.3)
             .collect();
         let buf = AudioBuffer::from_interleaved(samples, 2, sr).unwrap();
         let send_result = out.send(buf);

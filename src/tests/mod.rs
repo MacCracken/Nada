@@ -676,3 +676,377 @@ fn biquad_half_mix() {
     assert!(buf.rms() > original_rms * 0.2);
     assert!(buf.rms() < original_rms * 0.8);
 }
+
+// ── DSP reference accuracy tests (0.01 dB tolerance) ──────────────
+
+/// Helper: generate a pure sine at given amplitude, measure RMS in dB after
+/// processing through a settled filter (skip first half for transient).
+#[cfg(feature = "dsp")]
+fn measure_steady_state_db(buf: &AudioBuffer, skip_frames: usize) -> f32 {
+    let ch = buf.channels() as usize;
+    let samples = buf.samples();
+    let total = buf.frames() - skip_frames;
+    if total == 0 {
+        return f32::NEG_INFINITY;
+    }
+    let mut sum_sq = 0.0f64;
+    for frame in skip_frames..buf.frames() {
+        for c in 0..ch {
+            let s = samples[frame * ch + c] as f64;
+            sum_sq += s * s;
+        }
+    }
+    let rms = (sum_sq / (total * ch) as f64).sqrt();
+    if rms < 1e-15 {
+        f32::NEG_INFINITY
+    } else {
+        (20.0 * rms.log10()) as f32
+    }
+}
+
+/// Helper: generate a mono sine at given frequency, amplitude, and duration.
+#[cfg(feature = "dsp")]
+fn make_sine_mono(freq_hz: f32, amplitude: f32, sr: u32, frames: usize) -> AudioBuffer {
+    let samples: Vec<f32> = (0..frames)
+        .map(|i| amplitude * (2.0 * std::f32::consts::PI * freq_hz * i as f32 / sr as f32).sin())
+        .collect();
+    AudioBuffer::from_interleaved(samples, 1, sr).unwrap()
+}
+
+#[cfg(feature = "dsp")]
+mod dsp_reference_tests {
+    use super::*;
+    use crate::dsp::{
+        BiquadCoeffs, BiquadFilter, Compressor, CompressorParams, EnvelopeLimiter, FilterType,
+        LimiterParams, StereoPanner,
+    };
+
+    const DB_TOLERANCE: f32 = 0.01;
+    const SR: u32 = 48000;
+    const FRAMES: usize = 96000; // 2 seconds for settling
+    const SKIP: usize = 48000; // skip first second
+
+    /// Biquad LPF: at cutoff frequency (1kHz), Butterworth (Q=0.707) should
+    /// attenuate by exactly -3.01 dB.
+    #[test]
+    fn biquad_lp_at_cutoff_minus_3db() {
+        let mut filt = BiquadFilter::new(FilterType::LowPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut buf = make_sine_mono(1000.0, 1.0, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let attenuation = output_db - input_db;
+        assert!(
+            (attenuation - (-3.01)).abs() < 0.05, // 0.05 dB tolerance at cutoff
+            "LP at cutoff: expected -3.01 dB, got {attenuation:.4} dB"
+        );
+    }
+
+    /// Biquad LPF: passband (well below cutoff) should be 0 dB ± 0.01 dB.
+    #[test]
+    fn biquad_lp_passband_unity() {
+        let mut filt = BiquadFilter::new(FilterType::LowPass, 5000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut buf = make_sine_mono(100.0, 0.5, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let gain = output_db - input_db;
+        assert!(
+            gain.abs() < DB_TOLERANCE,
+            "LP passband: expected 0 dB, got {gain:.4} dB"
+        );
+    }
+
+    /// Biquad HPF: passband (well above cutoff) should be 0 dB ± 0.01 dB.
+    #[test]
+    fn biquad_hp_passband_unity() {
+        let mut filt = BiquadFilter::new(FilterType::HighPass, 100.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut buf = make_sine_mono(5000.0, 0.5, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let gain = output_db - input_db;
+        assert!(
+            gain.abs() < DB_TOLERANCE,
+            "HP passband: expected 0 dB, got {gain:.4} dB"
+        );
+    }
+
+    /// Biquad HPF: at cutoff, Butterworth should be -3.01 dB.
+    #[test]
+    fn biquad_hp_at_cutoff_minus_3db() {
+        let mut filt = BiquadFilter::new(FilterType::HighPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut buf = make_sine_mono(1000.0, 1.0, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let attenuation = output_db - input_db;
+        assert!(
+            (attenuation - (-3.01)).abs() < 0.05,
+            "HP at cutoff: expected -3.01 dB, got {attenuation:.4} dB"
+        );
+    }
+
+    /// Peaking EQ: +6 dB at center frequency should boost by exactly 6 dB.
+    #[test]
+    fn biquad_peaking_exact_boost() {
+        let mut filt = BiquadFilter::new(FilterType::Peaking { gain_db: 6.0 }, 1000.0, 1.0, SR, 1);
+        let mut buf = make_sine_mono(1000.0, 0.25, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let gain = output_db - input_db;
+        assert!(
+            (gain - 6.0).abs() < DB_TOLERANCE,
+            "Peaking +6dB at center: expected 6.0, got {gain:.4} dB"
+        );
+    }
+
+    /// Peaking EQ: -12 dB at center frequency should cut by exactly 12 dB.
+    #[test]
+    fn biquad_peaking_exact_cut() {
+        let mut filt =
+            BiquadFilter::new(FilterType::Peaking { gain_db: -12.0 }, 1000.0, 1.0, SR, 1);
+        let mut buf = make_sine_mono(1000.0, 0.5, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let gain = output_db - input_db;
+        assert!(
+            (gain - (-12.0)).abs() < DB_TOLERANCE,
+            "Peaking -12dB at center: expected -12.0, got {gain:.4} dB"
+        );
+    }
+
+    /// Peaking EQ: off-frequency (well outside Q bandwidth) should be 0 dB.
+    #[test]
+    fn biquad_peaking_passthrough_off_freq() {
+        let mut filt =
+            BiquadFilter::new(FilterType::Peaking { gain_db: 12.0 }, 10000.0, 2.0, SR, 1);
+        let mut buf = make_sine_mono(100.0, 0.5, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let gain = output_db - input_db;
+        assert!(
+            gain.abs() < DB_TOLERANCE,
+            "Peaking off-frequency: expected 0 dB, got {gain:.4} dB"
+        );
+    }
+
+    /// Low shelf: +6 dB at low frequencies should boost by 6 dB well below cutoff.
+    #[test]
+    fn biquad_low_shelf_exact_boost() {
+        let mut filt =
+            BiquadFilter::new(FilterType::LowShelf { gain_db: 6.0 }, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut buf = make_sine_mono(50.0, 0.25, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let gain = output_db - input_db;
+        assert!(
+            (gain - 6.0).abs() < DB_TOLERANCE,
+            "Low shelf +6dB at 50Hz: expected 6.0, got {gain:.4} dB"
+        );
+    }
+
+    /// High shelf: +6 dB at high frequencies should boost by 6 dB well above cutoff.
+    #[test]
+    fn biquad_high_shelf_exact_boost() {
+        let mut filt = BiquadFilter::new(
+            FilterType::HighShelf { gain_db: 6.0 },
+            1000.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+            1,
+        );
+        let mut buf = make_sine_mono(15000.0, 0.25, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let gain = output_db - input_db;
+        assert!(
+            (gain - 6.0).abs() < DB_TOLERANCE,
+            "High shelf +6dB at 15kHz: expected 6.0, got {gain:.4} dB"
+        );
+    }
+
+    /// Allpass: magnitude should be exactly 0 dB at all frequencies.
+    #[test]
+    fn biquad_allpass_unity_magnitude() {
+        let mut filt = BiquadFilter::new(FilterType::AllPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        for &freq in &[100.0, 500.0, 1000.0, 5000.0, 15000.0] {
+            let mut buf = make_sine_mono(freq, 0.5, SR, FRAMES);
+            let input_db = measure_steady_state_db(&buf, SKIP);
+            filt.reset();
+            filt.process(&mut buf);
+            let output_db = measure_steady_state_db(&buf, SKIP);
+            let gain = output_db - input_db;
+            assert!(
+                gain.abs() < DB_TOLERANCE,
+                "AllPass at {freq}Hz: expected 0 dB, got {gain:.4} dB"
+            );
+        }
+    }
+
+    /// Notch: at center frequency should attenuate deeply (>40 dB for high Q).
+    #[test]
+    fn biquad_notch_deep_at_center() {
+        let mut filt = BiquadFilter::new(FilterType::Notch, 1000.0, 10.0, SR, 1);
+        let mut buf = make_sine_mono(1000.0, 0.5, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        filt.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let attenuation = input_db - output_db;
+        assert!(
+            attenuation > 40.0,
+            "Notch at center: expected >40 dB rejection, got {attenuation:.1} dB"
+        );
+    }
+
+    /// Limiter: output should never exceed ceiling within 0.01 dB.
+    #[test]
+    fn limiter_ceiling_accuracy() {
+        let ceiling_db = -6.0f32;
+        let ceiling_lin = 10.0f32.powf(ceiling_db / 20.0);
+        let mut lim = EnvelopeLimiter::new(
+            LimiterParams {
+                ceiling_db,
+                release_ms: 10.0,
+                ..Default::default()
+            },
+            SR,
+        )
+        .unwrap();
+
+        // Hot signal well above ceiling
+        let mut buf = make_sine_mono(440.0, 1.0, SR, FRAMES);
+        lim.process(&mut buf);
+
+        // After settling, no sample should exceed ceiling + tolerance
+        let tolerance_lin = 10.0f32.powf((ceiling_db + DB_TOLERANCE) / 20.0);
+        for &s in &buf.samples()[SKIP..] {
+            assert!(
+                s.abs() <= tolerance_lin,
+                "Limiter exceeded ceiling: |{s}| > {tolerance_lin} (ceiling={ceiling_lin})"
+            );
+        }
+    }
+
+    /// Compressor: below threshold, gain should be exactly 0 dB.
+    #[test]
+    fn compressor_below_threshold_unity() {
+        let mut comp = Compressor::new(
+            CompressorParams {
+                threshold_db: -6.0,
+                ratio: 4.0,
+                attack_ms: 1.0,
+                release_ms: 50.0,
+                ..Default::default()
+            },
+            SR,
+        )
+        .unwrap();
+
+        // -20 dBFS sine (well below -6 dB threshold)
+        let amplitude = 10.0f32.powf(-20.0 / 20.0);
+        let mut buf = make_sine_mono(440.0, amplitude, SR, FRAMES);
+        let input_db = measure_steady_state_db(&buf, SKIP);
+        comp.process(&mut buf);
+        let output_db = measure_steady_state_db(&buf, SKIP);
+        let gain = output_db - input_db;
+        assert!(
+            gain.abs() < DB_TOLERANCE,
+            "Compressor below threshold: expected 0 dB, got {gain:.4} dB"
+        );
+    }
+
+    /// Panner: constant-power law — L²+R² of output equals mono input power.
+    /// At center pan: L=cos(π/4), R=sin(π/4), so L²+R²=1 (power preserved).
+    #[test]
+    fn panner_center_constant_power() {
+        let panner = StereoPanner::new(0.0);
+        let mono_buf = make_sine_mono(440.0, 0.5, SR, FRAMES);
+        let mono = mono_buf.samples();
+
+        // Mono input power (single channel)
+        let mono_power: f64 = mono[SKIP..]
+            .iter()
+            .map(|&s| (s as f64) * (s as f64))
+            .sum::<f64>()
+            / (FRAMES - SKIP) as f64;
+
+        // Duplicate to stereo, apply panner
+        let stereo: Vec<f32> = mono.iter().flat_map(|&s| [s, s]).collect();
+        let mut buf = AudioBuffer::from_interleaved(stereo, 2, SR).unwrap();
+        panner.process(&mut buf);
+
+        // Sum L²+R² per frame (total stereo power should equal mono power)
+        let mut stereo_power = 0.0f64;
+        let samples = buf.samples();
+        for frame in SKIP..FRAMES {
+            let l = samples[frame * 2] as f64;
+            let r = samples[frame * 2 + 1] as f64;
+            stereo_power += l * l + r * r;
+        }
+        stereo_power /= (FRAMES - SKIP) as f64;
+
+        let power_ratio_db = (10.0 * (stereo_power / mono_power).log10()) as f32;
+        assert!(
+            power_ratio_db.abs() < DB_TOLERANCE,
+            "Panner center L²+R²: expected 0 dB, got {power_ratio_db:.4} dB"
+        );
+    }
+
+    /// Biquad coefficient symmetry: H(z) at DC for LPF should be unity (0 dB).
+    #[test]
+    fn biquad_coeffs_dc_gain_unity_lp() {
+        let c = BiquadCoeffs::design(FilterType::LowPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR);
+        // DC gain = (b0 + b1 + b2) / (1 + a1 + a2)
+        let dc_gain = (c.b0 + c.b1 + c.b2) / (1.0 + c.a1 + c.a2);
+        let dc_db = 20.0 * dc_gain.abs().log10();
+        assert!(
+            dc_db.abs() < DB_TOLERANCE as f64,
+            "LPF DC gain: expected 0 dB, got {dc_db:.6} dB"
+        );
+    }
+
+    /// Biquad coefficient: HPF at DC should be -inf (zero gain).
+    #[test]
+    fn biquad_coeffs_dc_gain_zero_hp() {
+        let c = BiquadCoeffs::design(FilterType::HighPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR);
+        let dc_gain = (c.b0 + c.b1 + c.b2) / (1.0 + c.a1 + c.a2);
+        assert!(
+            dc_gain.abs() < 1e-10,
+            "HPF DC gain should be ~0, got {dc_gain}"
+        );
+    }
+
+    /// Biquad coefficient: Nyquist gain for HPF should be unity (0 dB).
+    #[test]
+    fn biquad_coeffs_nyquist_gain_unity_hp() {
+        let c = BiquadCoeffs::design(FilterType::HighPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR);
+        // Nyquist gain = (b0 - b1 + b2) / (1 - a1 + a2)
+        let nyq_gain = (c.b0 - c.b1 + c.b2) / (1.0 - c.a1 + c.a2);
+        let nyq_db = 20.0 * nyq_gain.abs().log10();
+        assert!(
+            nyq_db.abs() < DB_TOLERANCE as f64,
+            "HPF Nyquist gain: expected 0 dB, got {nyq_db:.6} dB"
+        );
+    }
+
+    /// amplitude_to_db and db_to_amplitude roundtrip within 0.01 dB.
+    #[test]
+    fn db_conversion_roundtrip_accuracy() {
+        use crate::dsp::{amplitude_to_db, db_to_amplitude};
+        for db in [-60.0, -40.0, -20.0, -6.0, -3.0, 0.0, 3.0, 6.0, 12.0, 20.0] {
+            let amp = db_to_amplitude(db);
+            let back = amplitude_to_db(amp);
+            assert!(
+                (back - db).abs() < DB_TOLERANCE,
+                "dB roundtrip: {db} → {amp} → {back}, error = {}",
+                (back - db).abs()
+            );
+        }
+    }
+}
