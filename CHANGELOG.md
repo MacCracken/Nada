@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] — 2026-03-29
 
 ### Changed — BREAKING
 
@@ -68,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`NoiseReducer`** — stateful spectral noise reducer that reuses Hann window, FFT scratch, and magnitude buffers across calls (avoids 3 large allocations per call). `noise_reduce()` still available as convenience wrapper
 
 #### Acoustics Integration (feature: `acoustics`)
-- **`acoustics` module** — bridges [`goonj`](https://crates.io/crates/goonj) 1.1.0 acoustic simulation into dhvani's processing pipeline
+- **`acoustics` module** — bridges [`goonj`](https://crates.io/crates/goonj) 1.1.1 acoustic simulation into dhvani's processing pipeline
 - `convolution_from_ir()` / `convolution_from_dhvani_ir()` — create `ConvolutionReverb` from goonj impulse responses
 - `convolve_multiband()` — frequency-dependent reverb from `MultibandIr` (8 octave bands)
 - `process_fdn()` — FDN late reverb processing into `AudioBuffer` with mono-sum input
@@ -94,7 +94,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Voice profiles: male, female, child with breathiness, vibrato, jitter, shimmer control
 
 #### Tests
-- 44 new tests: 8 convolution + 9 acoustics + 7 SVF peak/shelf + 9 P(-1) hardening + 7 synthesis + 4 voice (567 total)
+- 18 DSP reference accuracy tests (0.01 dB tolerance): biquad LP/HP/peaking/shelf/allpass/notch, limiter ceiling, compressor unity, panner constant power, coefficient DC/Nyquist gain, dB roundtrip
+- 8 convolution reverb tests (identity, delay, stereo, long IR, reset, hot-swap)
+- 9 acoustics integration tests (IR generation, FDN, multiband, B-Format decode, WAV export, room presets)
+- 7 SVF peak/shelf correctness tests
+- 5 PipeWire lifecycle tests (capture start/stop, output send, device enumeration, idempotent start)
+- 4 MIDI accessor tests, 2 error Display tests
+- 9 P(-1) hardening tests + 7 synthesis tests + 4 voice tests
+- 90.02% line coverage via cargo-llvm-cov (597 unit + 22 doc = 619 total)
 
 ### Performance
 - stereo_to_mono: 97µs → 54µs (−45%)
