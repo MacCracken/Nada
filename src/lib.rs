@@ -26,6 +26,7 @@
 //! | [`voice_synth`] | Voice synthesis: glottal source, formant, phoneme, prosody, vocal tract *(feature: `voice`)* |
 //! | [`creature`] | Creature/animal vocal synthesis: species-specific voice models, call patterns *(feature: `creature`)* |
 //! | [`sampler`] | Sample playback engine: key/velocity zones, loop modes, time-stretching *(feature: `sampler`)* |
+//! | [`acoustics`] | Room acoustics integration via goonj: convolution reverb, FDN, ambisonics, room presets *(feature: `acoustics`)* |
 //! | [`capture`] | PipeWire capture/output, ring-buffer recording *(feature: `pipewire`)* |
 //!
 //! # Quick Start
@@ -232,7 +233,8 @@
 //! | `creature` | No | Creature/animal vocals via [`prani`](https://crates.io/crates/prani): species voice models, call patterns, non-human tracts. Implies `synthesis` |
 //! | `sampler` | No | Sample playback via [`nidhi`](https://crates.io/crates/nidhi): key/velocity zones, loop modes, SFZ/SF2 import |
 //! | `pipewire` | No | PipeWire audio capture/output backend (Linux only) |
-//! | `full` | No | All features including synthesis, voice, and PipeWire |
+//! | `acoustics` | No | Room acoustics via [`goonj`](https://crates.io/crates/goonj): convolution reverb from IRs, FDN, ambisonics, room presets. Implies `analysis` |
+//! | `full` | No | All features including synthesis, voice, acoustics, and PipeWire |
 //!
 //! Core-only build (buffers, mixing, resampling, clock — no DSP/MIDI/analysis):
 //! ```toml
@@ -246,6 +248,8 @@ pub mod clock;
 pub mod ffi;
 
 // Feature-gated modules
+#[cfg(feature = "acoustics")]
+pub mod acoustics;
 #[cfg(feature = "analysis")]
 pub mod analysis;
 #[cfg(feature = "creature")]

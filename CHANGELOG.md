@@ -53,7 +53,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tracing::debug!` on noise_reduce, resample_sinc, Graph::compile
 
 #### DSP
+- **`ConvolutionReverb`** — FFT-based partitioned overlap-add convolution reverb engine. Works with any `&[f32]` impulse response. Supports mono/stereo, configurable block size, dry/wet mix, IR hot-swap
 - **`NoiseReducer`** — stateful spectral noise reducer that reuses Hann window, FFT scratch, and magnitude buffers across calls (avoids 3 large allocations per call). `noise_reduce()` still available as convenience wrapper
+
+#### Acoustics Integration (feature: `acoustics`)
+- **`acoustics` module** — bridges [`goonj`](https://crates.io/crates/goonj) 1.1.0 acoustic simulation into dhvani's processing pipeline
+- `convolution_from_ir()` / `convolution_from_dhvani_ir()` — create `ConvolutionReverb` from goonj impulse responses
+- `convolve_multiband()` — frequency-dependent reverb from `MultibandIr` (8 octave bands)
+- `process_fdn()` — FDN late reverb processing into `AudioBuffer` with mono-sum input
+- `decode_bformat_stereo()` — decode 1st-order Ambisonics B-Format IR to stereo (W+Y / W-Y cardioid)
+- `export_ir_wav()` — export IR as 16-bit PCM WAV
+- `generate_ir()` — convenience wrapper for `generate_dhvani_ir` using `(f32, f32, f32)` tuples (no hisab dep needed)
+- `acoustics::presets` — 6 curated room presets: studio, rehearsal room, concert hall, bathroom, cathedral, outdoor
+- Re-exports: `AcousticRoom`, `AcousticMaterial`, `ImpulseResponse`, `MultibandIr`, `DhvaniIr`, `Fdn`, `FdnConfig`, `BFormatIr`, `HoaIr`, room acoustics analysis functions
 
 #### Documentation
 - Redundant explicit rustdoc link targets fixed in lib.rs
@@ -71,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Voice profiles: male, female, child with breathiness, vibrato, jitter, shimmer control
 
 #### Tests
-- 27 new tests: 7 SVF peak/shelf correctness + 9 P(-1) hardening + 7 synthesis + 4 voice (550 total)
+- 44 new tests: 8 convolution + 9 acoustics + 7 SVF peak/shelf + 9 P(-1) hardening + 7 synthesis + 4 voice (567 total)
 
 ### Performance
 - stereo_to_mono: 97µs → 54µs (−45%)

@@ -418,10 +418,7 @@ mod tests {
         let mut svf = SvfFilter::new(SvfMode::Peak, 1000.0, 1.0, 0.0, 44100, 1);
         svf.process(&mut buf);
         // After settling, output should closely match input
-        for (out, orig) in buf.samples()[2048..4096]
-            .iter()
-            .zip(&original[2048..4096])
-        {
+        for (out, orig) in buf.samples()[2048..4096].iter().zip(&original[2048..4096]) {
             assert!(
                 (out - orig).abs() < 0.01,
                 "Peak 0dB diverged: {out} vs {orig}",

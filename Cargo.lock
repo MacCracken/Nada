@@ -310,6 +310,7 @@ dependencies = [
  "criterion",
  "garjan",
  "ghurni",
+ "goonj",
  "naad",
  "nidhi",
  "pipewire",
@@ -435,6 +436,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
+name = "goonj"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "082ebff59fe4b3efa3ac990420a0cb25e6da85a5283fbd4d1b1149dcb9036f26"
+dependencies = [
+ "hisab 0.24.3",
+ "serde",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "half"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -466,6 +479,18 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "hisab"
+version = "0.24.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1844ed076d16ea08622e460b2c14c1234394b6e03fd035543c0efcc04ab583e7"
+dependencies = [
+ "glam",
+ "serde",
+ "thiserror",
+ "tracing",
+]
 
 [[package]]
 name = "hisab"
@@ -608,7 +633,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b54f174ae4e702922967a9a25d8cea5eef7461d5d070fa2da4dd40e851f90d9"
 dependencies = [
- "hisab",
+ "hisab 1.3.0",
  "serde",
  "thiserror",
  "tracing",
@@ -620,7 +645,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "617fe0519c63754888ded1945fa9757828768a78491c88e6f3c2de5dcb39cb8c"
 dependencies = [
- "hisab",
+ "hisab 1.3.0",
  "serde",
  "thiserror",
  "tracing",
@@ -771,7 +796,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a7bf7048f5f1457b6b13bc82a3fda1a6c0793c6f637b0215d4ce776de320adb"
 dependencies = [
- "hisab",
+ "hisab 1.3.0",
  "libm",
  "serde",
  "svara",
@@ -1078,7 +1103,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "990b953f9571cb7980e38fdd289cce594576055165aa290dc2a8ecb132643cee"
 dependencies = [
- "hisab",
+ "hisab 1.3.0",
  "libm",
  "naad",
  "serde",

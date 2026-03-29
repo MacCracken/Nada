@@ -149,18 +149,18 @@ dhvani output → speaker / PipeWire / recording
 | **shruti** | Vocoder effect in DAW, voice synthesis as instrument |
 | **hoosh** | Audio response mode — speak inference results instead of text |
 
-### Goonj Integration (acoustics engine)
+### Goonj Integration (acoustics engine) ✅
 
-- [ ] **Convolution reverb from goonj IR**: Use `goonj::integration::dhvani::generate_dhvani_ir()` to produce room-specific impulse responses; convolve with dry signal via dhvani DSP chain
-- [ ] **Per-band reverb**: Consume `goonj::impulse::MultibandIr` for frequency-dependent convolution (8-band: 63–8000 Hz)
-- [ ] **FDN reverb**: Use `goonj::fdn::Fdn` for efficient real-time late reverberation (alternative to convolution)
-- [ ] **Ambisonics output**: Use `goonj::ambisonics::BFormatIr` for spatial reverb encoding
-- [ ] **WAV IR export**: Use `goonj::wav::write_wav_mono()` to export goonj IRs as WAV files for offline reverb processing
-- [ ] **Room presets**: Curate goonj room configurations (concert hall, studio, bathroom, cathedral) as dhvani reverb presets
+- [x] **Convolution reverb from goonj IR**: `convolution_from_ir()` / `convolution_from_dhvani_ir()` — `generate_ir()` convenience wrapper avoids hisab dep
+- [x] **Per-band reverb**: `convolve_multiband()` — consumes `MultibandIr` (8-band: 63–8000 Hz)
+- [x] **FDN reverb**: `process_fdn()` — wraps `goonj::fdn::Fdn` for `AudioBuffer` processing
+- [x] **Ambisonics output**: `decode_bformat_stereo()` — B-Format W+Y/W-Y cardioid decode to stereo
+- [x] **WAV IR export**: `export_ir_wav()` — wraps `goonj::wav::write_wav_mono()`
+- [x] **Room presets**: `acoustics::presets` — studio, rehearsal room, concert hall, bathroom, cathedral, outdoor
 
 ### Advanced DSP
 
-- [ ] Convolution reverb engine (core DSP — goonj provides the impulse responses, dhvani provides the convolution)
+- [x] Convolution reverb engine (`ConvolutionReverb` — FFT-based partitioned overlap-add, any `&[f32]` IR)
 - [ ] Multiband compressor
 - [ ] Noise suppression (RNNoise or custom)
 - [ ] Pitch shifting (phase vocoder)

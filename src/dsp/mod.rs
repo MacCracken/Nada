@@ -3,6 +3,8 @@
 pub mod automation;
 pub mod biquad;
 pub mod compressor;
+#[cfg(feature = "analysis")]
+pub mod convolution;
 pub mod deesser;
 pub mod delay;
 pub mod envelope;
@@ -24,6 +26,8 @@ use crate::buffer::AudioBuffer;
 pub use automation::{AutomationLane, Breakpoint, CurveType};
 pub use biquad::{BiquadCoeffs, BiquadFilter, FilterType};
 pub use compressor::{Compressor, CompressorParams};
+#[cfg(feature = "analysis")]
+pub use convolution::ConvolutionReverb;
 pub use deesser::{DeEsser, DeEsserParams};
 pub use delay::{DelayLine, ModulatedDelay, ModulatedDelayParams};
 pub use envelope::{AdsrParams, Envelope, EnvelopeState};
