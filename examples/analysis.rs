@@ -36,17 +36,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     println!(
         "  RMS: {:.2} dB, Crest factor: {:.1} dB",
-        dyn_.rms_db.first().unwrap_or(&f32::NEG_INFINITY),
+        dyn_.rms_db().first().unwrap_or(&f32::NEG_INFINITY),
         dyn_.mean_crest_factor_db()
     );
-    println!("  Dynamic range: {:.1} dB", dyn_.dynamic_range_db);
+    println!("  Dynamic range: {:.1} dB", dyn_.dynamic_range_db());
 
     // EBU R128
     let r128 = measure_r128(&buf)?;
     println!("EBU R128:");
-    println!("  Integrated: {:.1} LUFS", r128.integrated_lufs);
-    println!("  Short-term: {:.1} LUFS", r128.short_term_lufs);
-    println!("  LRA: {:.1} LU", r128.range_lu);
+    println!("  Integrated: {:.1} LUFS", r128.integrated_lufs());
+    println!("  Short-term: {:.1} LUFS", r128.short_term_lufs());
+    println!("  LRA: {:.1} LU", r128.range_lu());
 
     // Chromagram
     let chroma = chromagram(&buf, 8192)?;
@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Onset detection
     let onsets = detect_onsets(&buf, 2048, 512, 0.3)?;
-    println!("Onsets: {} detected", onsets.positions.len());
+    println!("Onsets: {} detected", onsets.count());
 
     Ok(())
 }

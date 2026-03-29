@@ -70,7 +70,7 @@
 
 All must be true:
 
-- [ ] API frozen: AudioBuffer, AudioClock, Spectrum, MIDI, Graph, Meter — all fields private, accessors only
+- [x] API frozen: AudioBuffer, AudioClock, Spectrum, MIDI, Graph, Meter — all fields private, accessors only
 - [x] No panics in non-test code (0 unwrap/expect/assert in production paths)
 - [x] All 106+ `unsafe` blocks have `// SAFETY:` comments
 - [x] DSP effects within 0.01 dB of reference implementations
@@ -79,7 +79,7 @@ All must be true:
 - [x] PipeWire capture/output tested with real hardware
 - [ ] 3+ downstream consumers in production
 - [ ] 90%+ test coverage
-- [ ] docs.rs complete — every public type documented with examples
+- [x] docs.rs complete — every public type documented with examples
 - [x] Golden benchmark numbers published
 - [x] Zero clippy warnings
 - [x] Supply chain clean (audit + deny + vet)

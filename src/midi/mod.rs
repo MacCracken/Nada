@@ -20,18 +20,43 @@ pub type FramePos = u64;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NoteEvent {
     /// Start position in frames.
-    pub position: FramePos,
+    pub(crate) position: FramePos,
     /// Duration in frames.
-    pub duration: FramePos,
+    pub(crate) duration: FramePos,
     /// MIDI note number (0–127).
-    pub note: u8,
+    pub(crate) note: u8,
     /// Velocity (0–127).
-    pub velocity: u8,
+    pub(crate) velocity: u8,
     /// MIDI channel (0–15).
-    pub channel: u8,
+    pub(crate) channel: u8,
 }
 
 impl NoteEvent {
+    /// Start position in frames.
+    pub fn position(&self) -> FramePos {
+        self.position
+    }
+
+    /// Duration in frames.
+    pub fn duration(&self) -> FramePos {
+        self.duration
+    }
+
+    /// MIDI note number (0–127).
+    pub fn note(&self) -> u8 {
+        self.note
+    }
+
+    /// Velocity (0–127).
+    pub fn velocity(&self) -> u8 {
+        self.velocity
+    }
+
+    /// MIDI channel (0–15).
+    pub fn channel(&self) -> u8 {
+        self.channel
+    }
+
     /// Create a new note event.
     pub fn new(
         position: FramePos,
@@ -55,16 +80,36 @@ impl NoteEvent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ControlChange {
     /// Position in frames.
-    pub position: FramePos,
+    pub(crate) position: FramePos,
     /// CC number (0–127).
-    pub controller: u8,
+    pub(crate) controller: u8,
     /// CC value (0–127).
-    pub value: u8,
+    pub(crate) value: u8,
     /// MIDI channel (0–15).
-    pub channel: u8,
+    pub(crate) channel: u8,
 }
 
 impl ControlChange {
+    /// Position in frames.
+    pub fn position(&self) -> FramePos {
+        self.position
+    }
+
+    /// CC number (0–127).
+    pub fn controller(&self) -> u8 {
+        self.controller
+    }
+
+    /// CC value (0–127).
+    pub fn value(&self) -> u8 {
+        self.value
+    }
+
+    /// MIDI channel (0–15).
+    pub fn channel(&self) -> u8 {
+        self.channel
+    }
+
     /// Create a new control change event.
     pub fn new(position: FramePos, controller: u8, value: u8, channel: u8) -> Self {
         Self {
@@ -189,18 +234,43 @@ impl MidiEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MidiClip {
     /// Clip name.
-    pub name: String,
+    pub(crate) name: String,
     /// Note events (sorted by position).
-    pub notes: Vec<NoteEvent>,
+    pub(crate) notes: Vec<NoteEvent>,
     /// Control change events (sorted by position).
-    pub control_changes: Vec<ControlChange>,
+    pub(crate) control_changes: Vec<ControlChange>,
     /// Position on the timeline in frames.
-    pub timeline_pos: FramePos,
+    pub(crate) timeline_pos: FramePos,
     /// Clip duration in frames.
-    pub duration: FramePos,
+    pub(crate) duration: FramePos,
 }
 
 impl MidiClip {
+    /// Clip name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Note events (sorted by position).
+    pub fn notes(&self) -> &[NoteEvent] {
+        &self.notes
+    }
+
+    /// Control change events (sorted by position).
+    pub fn control_changes(&self) -> &[ControlChange] {
+        &self.control_changes
+    }
+
+    /// Position on the timeline in frames.
+    pub fn timeline_pos(&self) -> FramePos {
+        self.timeline_pos
+    }
+
+    /// Clip duration in frames.
+    pub fn duration(&self) -> FramePos {
+        self.duration
+    }
+
     /// Create a new empty MIDI clip.
     pub fn new(name: impl Into<String>, timeline_pos: FramePos, duration: FramePos) -> Self {
         Self {

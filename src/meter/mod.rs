@@ -170,11 +170,11 @@ fn linear_to_db(linear: f32) -> f32 {
 #[derive(Debug, Clone)]
 pub struct LevelMeter {
     /// Current peak level per channel (linear).
-    pub peak: Vec<f32>,
+    pub(crate) peak: Vec<f32>,
     /// Current RMS level per channel (linear).
-    pub rms: Vec<f32>,
+    pub(crate) rms: Vec<f32>,
     /// Integrated LUFS value (mono/stereo).
-    pub lufs: f32,
+    pub(crate) lufs: f32,
     channels: usize,
     rms_sum: Vec<f64>,
     rms_count: u64,
@@ -319,6 +319,21 @@ impl LevelMeter {
 
         let integrated = final_sum / final_count as f64;
         self.lufs = (LUFS_OFFSET + 10.0 * integrated.log10()) as f32;
+    }
+
+    /// Peak levels per channel (linear).
+    pub fn peak(&self) -> &[f32] {
+        &self.peak
+    }
+
+    /// RMS levels per channel (linear).
+    pub fn rms(&self) -> &[f32] {
+        &self.rms
+    }
+
+    /// Integrated LUFS value.
+    pub fn lufs(&self) -> f32 {
+        self.lufs
     }
 
     /// Get peak level in dB for a channel.

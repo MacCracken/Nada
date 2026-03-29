@@ -730,7 +730,13 @@ mod dsp_reference_tests {
     /// attenuate by exactly -3.01 dB.
     #[test]
     fn biquad_lp_at_cutoff_minus_3db() {
-        let mut filt = BiquadFilter::new(FilterType::LowPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut filt = BiquadFilter::new(
+            FilterType::LowPass,
+            1000.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+            1,
+        );
         let mut buf = make_sine_mono(1000.0, 1.0, SR, FRAMES);
         let input_db = measure_steady_state_db(&buf, SKIP);
         filt.process(&mut buf);
@@ -745,7 +751,13 @@ mod dsp_reference_tests {
     /// Biquad LPF: passband (well below cutoff) should be 0 dB ± 0.01 dB.
     #[test]
     fn biquad_lp_passband_unity() {
-        let mut filt = BiquadFilter::new(FilterType::LowPass, 5000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut filt = BiquadFilter::new(
+            FilterType::LowPass,
+            5000.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+            1,
+        );
         let mut buf = make_sine_mono(100.0, 0.5, SR, FRAMES);
         let input_db = measure_steady_state_db(&buf, SKIP);
         filt.process(&mut buf);
@@ -760,7 +772,13 @@ mod dsp_reference_tests {
     /// Biquad HPF: passband (well above cutoff) should be 0 dB ± 0.01 dB.
     #[test]
     fn biquad_hp_passband_unity() {
-        let mut filt = BiquadFilter::new(FilterType::HighPass, 100.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut filt = BiquadFilter::new(
+            FilterType::HighPass,
+            100.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+            1,
+        );
         let mut buf = make_sine_mono(5000.0, 0.5, SR, FRAMES);
         let input_db = measure_steady_state_db(&buf, SKIP);
         filt.process(&mut buf);
@@ -775,7 +793,13 @@ mod dsp_reference_tests {
     /// Biquad HPF: at cutoff, Butterworth should be -3.01 dB.
     #[test]
     fn biquad_hp_at_cutoff_minus_3db() {
-        let mut filt = BiquadFilter::new(FilterType::HighPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut filt = BiquadFilter::new(
+            FilterType::HighPass,
+            1000.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+            1,
+        );
         let mut buf = make_sine_mono(1000.0, 1.0, SR, FRAMES);
         let input_db = measure_steady_state_db(&buf, SKIP);
         filt.process(&mut buf);
@@ -837,8 +861,13 @@ mod dsp_reference_tests {
     /// Low shelf: +6 dB at low frequencies should boost by 6 dB well below cutoff.
     #[test]
     fn biquad_low_shelf_exact_boost() {
-        let mut filt =
-            BiquadFilter::new(FilterType::LowShelf { gain_db: 6.0 }, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut filt = BiquadFilter::new(
+            FilterType::LowShelf { gain_db: 6.0 },
+            1000.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+            1,
+        );
         let mut buf = make_sine_mono(50.0, 0.25, SR, FRAMES);
         let input_db = measure_steady_state_db(&buf, SKIP);
         filt.process(&mut buf);
@@ -874,7 +903,13 @@ mod dsp_reference_tests {
     /// Allpass: magnitude should be exactly 0 dB at all frequencies.
     #[test]
     fn biquad_allpass_unity_magnitude() {
-        let mut filt = BiquadFilter::new(FilterType::AllPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR, 1);
+        let mut filt = BiquadFilter::new(
+            FilterType::AllPass,
+            1000.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+            1,
+        );
         for &freq in &[100.0, 500.0, 1000.0, 5000.0, 15000.0] {
             let mut buf = make_sine_mono(freq, 0.5, SR, FRAMES);
             let input_db = measure_steady_state_db(&buf, SKIP);
@@ -1001,7 +1036,12 @@ mod dsp_reference_tests {
     /// Biquad coefficient symmetry: H(z) at DC for LPF should be unity (0 dB).
     #[test]
     fn biquad_coeffs_dc_gain_unity_lp() {
-        let c = BiquadCoeffs::design(FilterType::LowPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR);
+        let c = BiquadCoeffs::design(
+            FilterType::LowPass,
+            1000.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+        );
         // DC gain = (b0 + b1 + b2) / (1 + a1 + a2)
         let dc_gain = (c.b0 + c.b1 + c.b2) / (1.0 + c.a1 + c.a2);
         let dc_db = 20.0 * dc_gain.abs().log10();
@@ -1014,7 +1054,12 @@ mod dsp_reference_tests {
     /// Biquad coefficient: HPF at DC should be -inf (zero gain).
     #[test]
     fn biquad_coeffs_dc_gain_zero_hp() {
-        let c = BiquadCoeffs::design(FilterType::HighPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR);
+        let c = BiquadCoeffs::design(
+            FilterType::HighPass,
+            1000.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+        );
         let dc_gain = (c.b0 + c.b1 + c.b2) / (1.0 + c.a1 + c.a2);
         assert!(
             dc_gain.abs() < 1e-10,
@@ -1025,7 +1070,12 @@ mod dsp_reference_tests {
     /// Biquad coefficient: Nyquist gain for HPF should be unity (0 dB).
     #[test]
     fn biquad_coeffs_nyquist_gain_unity_hp() {
-        let c = BiquadCoeffs::design(FilterType::HighPass, 1000.0, std::f32::consts::FRAC_1_SQRT_2, SR);
+        let c = BiquadCoeffs::design(
+            FilterType::HighPass,
+            1000.0,
+            std::f32::consts::FRAC_1_SQRT_2,
+            SR,
+        );
         // Nyquist gain = (b0 - b1 + b2) / (1 - a1 + a2)
         let nyq_gain = (c.b0 - c.b1 + c.b2) / (1.0 - c.a1 + c.a2);
         let nyq_db = 20.0 * nyq_gain.abs().log10();

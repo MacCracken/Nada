@@ -9,9 +9,26 @@ use crate::buffer::AudioBuffer;
 #[derive(Debug, Clone)]
 pub struct OnsetResult {
     /// Frame positions (in samples) of detected onsets.
-    pub positions: Vec<usize>,
+    pub(crate) positions: Vec<usize>,
     /// Spectral flux values at each onset.
-    pub strengths: Vec<f32>,
+    pub(crate) strengths: Vec<f32>,
+}
+
+impl OnsetResult {
+    /// Frame positions (in samples) of detected onsets.
+    pub fn positions(&self) -> &[usize] {
+        &self.positions
+    }
+
+    /// Spectral flux values at each onset.
+    pub fn strengths(&self) -> &[f32] {
+        &self.strengths
+    }
+
+    /// Number of detected onsets.
+    pub fn count(&self) -> usize {
+        self.positions.len()
+    }
 }
 
 /// Detect note/transient onsets in an audio buffer using spectral flux.

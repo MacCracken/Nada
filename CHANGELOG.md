@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Builder constructors added: `CompressorParams::new().with_threshold().with_ratio()...`, `ReverbParams::new().with_room_size()...`, `LimiterParams::new().with_ceiling()...`, `EqBandConfig::new()`
 - `NoteEvent::new()` and `ControlChange::new()` constructors added
 
+#### API Encapsulation — v1.0 Freeze
+- `DynamicsAnalysis` fields now private — use `peak()`, `peak_db()`, `true_peak()`, `true_peak_db()`, `rms()`, `rms_db()`, `crest_factor_db()`, `lufs()`, `dynamic_range_db()`, `frame_count()`, `channel_count()` accessors
+- `R128Loudness` fields now private — use `integrated_lufs()`, `range_lu()`, `short_term_lufs()`, `momentary_lufs()` accessors
+- `OnsetResult` fields now private — use `positions()`, `strengths()`, `count()` accessors
+- `NoteEvent` fields now private — use `position()`, `duration()`, `note()`, `velocity()`, `channel()` accessors
+- `ControlChange` fields now private — use `position()`, `controller()`, `value()`, `channel()` accessors
+- `MidiClip` fields now private — use `name()`, `notes()`, `control_changes()`, `timeline_pos()`, `duration()` accessors
+- `Connection` fields now private — use `from()`, `to()` accessors
+- `NodeId` inner field now private — use `value()` accessor
+- `LevelMeter` fields now private — use `peak()`, `rms()`, `lufs()` accessors (plus existing `peak_db()`, `rms_db()`, `peak_hold()`)
+
 ### Fixed
 
 #### Correctness

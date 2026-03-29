@@ -16,13 +16,35 @@ use crate::error::NadaError;
 #[derive(Debug, Clone)]
 pub struct R128Loudness {
     /// Integrated loudness (LUFS) — the main number.
-    pub integrated_lufs: f32,
+    pub(crate) integrated_lufs: f32,
     /// Loudness range (LRA) in LU.
-    pub range_lu: f32,
+    pub(crate) range_lu: f32,
     /// Short-term loudness (last 3s window) in LUFS.
-    pub short_term_lufs: f32,
+    pub(crate) short_term_lufs: f32,
     /// Momentary loudness (last 400ms window) in LUFS.
-    pub momentary_lufs: f32,
+    pub(crate) momentary_lufs: f32,
+}
+
+impl R128Loudness {
+    /// Integrated loudness (LUFS) — the main EBU R128 number.
+    pub fn integrated_lufs(&self) -> f32 {
+        self.integrated_lufs
+    }
+
+    /// Loudness range (LRA) in LU.
+    pub fn range_lu(&self) -> f32 {
+        self.range_lu
+    }
+
+    /// Short-term loudness (last 3s window) in LUFS.
+    pub fn short_term_lufs(&self) -> f32 {
+        self.short_term_lufs
+    }
+
+    /// Momentary loudness (last 400ms window) in LUFS.
+    pub fn momentary_lufs(&self) -> f32 {
+        self.momentary_lufs
+    }
 }
 
 /// Measure EBU R128 integrated loudness.

@@ -139,7 +139,7 @@
 //!
 //! // EBU R128 loudness (K-weighted, gated)
 //! let r128 = measure_r128(&buf).unwrap();
-//! println!("Integrated: {:.1} LUFS", r128.integrated_lufs);
+//! println!("Integrated: {:.1} LUFS", r128.integrated_lufs());
 //!
 //! // Chromagram (pitch class detection)
 //! let chroma = chromagram(&buf, 4096).unwrap();
@@ -147,7 +147,7 @@
 //!
 //! // Onset detection
 //! let onsets = detect_onsets(&buf, 2048, 512, 0.3).unwrap();
-//! println!("Found {} onsets", onsets.positions.len());
+//! println!("Found {} onsets", onsets.count());
 //! ```
 //!
 //! ## Step 4: Work with MIDI

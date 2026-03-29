@@ -9,30 +9,85 @@ use crate::dsp::amplitude_to_db;
 #[derive(Debug, Clone)]
 pub struct DynamicsAnalysis {
     /// Peak amplitude per channel (linear).
-    pub peak: Vec<f32>,
+    pub(crate) peak: Vec<f32>,
     /// Peak amplitude per channel (dB).
-    pub peak_db: Vec<f32>,
+    pub(crate) peak_db: Vec<f32>,
     /// True peak per channel (4x oversampled inter-sample detection, linear).
-    pub true_peak: Vec<f32>,
+    pub(crate) true_peak: Vec<f32>,
     /// True peak per channel (dB).
-    pub true_peak_db: Vec<f32>,
+    pub(crate) true_peak_db: Vec<f32>,
     /// RMS level per channel (linear).
-    pub rms: Vec<f32>,
+    pub(crate) rms: Vec<f32>,
     /// RMS level per channel (dB).
-    pub rms_db: Vec<f32>,
+    pub(crate) rms_db: Vec<f32>,
     /// Crest factor per channel (peak / RMS ratio, dB).
-    pub crest_factor_db: Vec<f32>,
+    pub(crate) crest_factor_db: Vec<f32>,
     /// Integrated loudness (LUFS) — EBU R128 simplified.
-    pub lufs: f32,
+    pub(crate) lufs: f32,
     /// Dynamic range (dB) — max peak minus mean RMS.
-    pub dynamic_range_db: f32,
+    pub(crate) dynamic_range_db: f32,
     /// Number of frames analyzed.
-    pub frame_count: usize,
+    pub(crate) frame_count: usize,
     /// Number of channels analyzed.
-    pub channel_count: u32,
+    pub(crate) channel_count: u32,
 }
 
 impl DynamicsAnalysis {
+    /// Peak amplitude per channel (linear).
+    pub fn peak(&self) -> &[f32] {
+        &self.peak
+    }
+
+    /// Peak amplitude per channel (dB).
+    pub fn peak_db(&self) -> &[f32] {
+        &self.peak_db
+    }
+
+    /// True peak per channel (linear, 4x oversampled).
+    pub fn true_peak(&self) -> &[f32] {
+        &self.true_peak
+    }
+
+    /// True peak per channel (dB).
+    pub fn true_peak_db(&self) -> &[f32] {
+        &self.true_peak_db
+    }
+
+    /// RMS level per channel (linear).
+    pub fn rms(&self) -> &[f32] {
+        &self.rms
+    }
+
+    /// RMS level per channel (dB).
+    pub fn rms_db(&self) -> &[f32] {
+        &self.rms_db
+    }
+
+    /// Crest factor per channel (dB).
+    pub fn crest_factor_db(&self) -> &[f32] {
+        &self.crest_factor_db
+    }
+
+    /// Integrated loudness (LUFS).
+    pub fn lufs(&self) -> f32 {
+        self.lufs
+    }
+
+    /// Dynamic range (dB) — max peak minus mean RMS.
+    pub fn dynamic_range_db(&self) -> f32 {
+        self.dynamic_range_db
+    }
+
+    /// Number of frames analyzed.
+    pub fn frame_count(&self) -> usize {
+        self.frame_count
+    }
+
+    /// Number of channels analyzed.
+    pub fn channel_count(&self) -> u32 {
+        self.channel_count
+    }
+
     /// Max peak across all channels (linear).
     pub fn max_peak(&self) -> f32 {
         self.peak.iter().cloned().fold(0.0f32, f32::max)
@@ -207,21 +262,21 @@ mod tests {
     fn silence_dynamics() {
         let buf = AudioBuffer::silence(1, 4096, 44100);
         let d = analyze_dynamics(&buf);
-        assert_eq!(d.peak[0], 0.0);
-        assert!(d.peak_db[0].is_infinite());
-        assert_eq!(d.rms[0], 0.0);
-        assert_eq!(d.frame_count, 4096);
-        assert_eq!(d.channel_count, 1);
+        assert_eq!(d.peak()[0], 0.0);
+        assert!(d.peak_db()[0].is_infinite());
+        assert_eq!(d.rms()[0], 0.0);
+        assert_eq!(d.frame_count(), 4096);
+        assert_eq!(d.channel_count(), 1);
     }
 
     #[test]
     fn sine_dynamics() {
         let buf = make_sine(0.8, 440.0, 44100);
         let d = analyze_dynamics(&buf);
-        assert!((d.peak[0] - 0.8).abs() < 0.01);
-        assert!(d.rms[0] > 0.5);
-        assert!(d.crest_factor_db[0] > 0.0);
-        assert!(d.dynamic_range_db > 0.0);
+        assert!((d.peak()[0] - 0.8).abs() < 0.01);
+        assert!(d.rms()[0] > 0.5);
+        assert!(d.crest_factor_db()[0] > 0.0);
+        assert!(d.dynamic_range_db() > 0.0);
     }
 
     #[test]
@@ -229,25 +284,25 @@ mod tests {
         let samples = vec![0.9, -0.9, 0.9, -0.9, 0.9, -0.9, 0.9, -0.9];
         let buf = AudioBuffer::from_interleaved(samples, 1, 44100).unwrap();
         let d = analyze_dynamics(&buf);
-        assert!(d.true_peak[0] >= d.peak[0] - 0.01);
+        assert!(d.true_peak()[0] >= d.peak()[0] - 0.01);
     }
 
     #[test]
     fn crest_factor_positive_for_sine() {
         let buf = make_sine(1.0, 1000.0, 44100);
         let d = analyze_dynamics(&buf);
-        assert!(d.crest_factor_db[0] > 2.0);
-        assert!(d.crest_factor_db[0] < 4.0);
+        assert!(d.crest_factor_db()[0] > 2.0);
+        assert!(d.crest_factor_db()[0] < 4.0);
     }
 
     #[test]
     fn dynamics_all_finite() {
         let buf = make_sine(0.5, 440.0, 4096);
         let d = analyze_dynamics(&buf);
-        assert!(d.peak_db[0].is_finite());
-        assert!(d.true_peak_db[0].is_finite());
-        assert!(d.rms_db[0].is_finite());
-        assert!(d.crest_factor_db[0].is_finite());
+        assert!(d.peak_db()[0].is_finite());
+        assert!(d.true_peak_db()[0].is_finite());
+        assert!(d.rms_db()[0].is_finite());
+        assert!(d.crest_factor_db()[0].is_finite());
     }
 
     #[test]
@@ -260,11 +315,11 @@ mod tests {
         }
         let buf = AudioBuffer::from_interleaved(data, 2, 44100).unwrap();
         let d = analyze_dynamics(&buf);
-        assert_eq!(d.channel_count, 2);
-        assert!((d.peak[0] - 0.8).abs() < 0.001);
-        assert!((d.peak[1] - 0.1).abs() < 0.001);
-        assert!(d.peak_db[0] > d.peak_db[1]);
-        assert!(d.rms[0] > d.rms[1]);
+        assert_eq!(d.channel_count(), 2);
+        assert!((d.peak()[0] - 0.8).abs() < 0.001);
+        assert!((d.peak()[1] - 0.1).abs() < 0.001);
+        assert!(d.peak_db()[0] > d.peak_db()[1]);
+        assert!(d.rms()[0] > d.rms()[1]);
     }
 
     #[test]
@@ -292,17 +347,17 @@ mod tests {
     fn empty_buffer() {
         let buf = AudioBuffer::silence(1, 0, 44100);
         let d = analyze_dynamics(&buf);
-        assert_eq!(d.frame_count, 0);
-        assert_eq!(d.peak[0], 0.0);
-        assert_eq!(d.rms[0], 0.0);
+        assert_eq!(d.frame_count(), 0);
+        assert_eq!(d.peak()[0], 0.0);
+        assert_eq!(d.rms()[0], 0.0);
     }
 
     #[test]
     fn single_frame() {
         let buf = AudioBuffer::from_interleaved(vec![0.75], 1, 44100).unwrap();
         let d = analyze_dynamics(&buf);
-        assert!((d.peak[0] - 0.75).abs() < 0.001);
-        assert!((d.rms[0] - 0.75).abs() < 0.001);
-        assert!((d.true_peak[0] - 0.75).abs() < 0.001);
+        assert!((d.peak()[0] - 0.75).abs() < 0.001);
+        assert!((d.rms()[0] - 0.75).abs() < 0.001);
+        assert!((d.true_peak()[0] - 0.75).abs() < 0.001);
     }
 }

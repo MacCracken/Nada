@@ -21,12 +21,17 @@ static NEXT_NODE_ID: AtomicU32 = AtomicU32::new(1);
 /// Unique identifier for a node in the audio graph.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct NodeId(pub u32);
+pub struct NodeId(pub(crate) u32);
 
 impl NodeId {
     /// Generate the next unique node ID.
     pub fn next() -> Self {
         Self(NEXT_NODE_ID.fetch_add(1, Ordering::Relaxed))
+    }
+
+    /// The raw node ID value.
+    pub fn value(self) -> u32 {
+        self.0
     }
 }
 
@@ -74,9 +79,21 @@ pub trait AudioNode: Send {
 #[derive(Debug, Clone)]
 pub struct Connection {
     /// Source node.
-    pub from: NodeId,
+    pub(crate) from: NodeId,
     /// Destination node.
-    pub to: NodeId,
+    pub(crate) to: NodeId,
+}
+
+impl Connection {
+    /// Source node.
+    pub fn from(&self) -> NodeId {
+        self.from
+    }
+
+    /// Destination node.
+    pub fn to(&self) -> NodeId {
+        self.to
+    }
 }
 
 // ── Graph (non-RT builder) ──────────────────────────────────────────
