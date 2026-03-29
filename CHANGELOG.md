@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 #### Correctness
+- **SVF Peak/Shelf modes** — Peak mode now correctly boosts/cuts the bandpass component around cutoff (`input + (A²-1) * BP`) with modified `k = 1/(Q*A)` per Cytomic spec (was computing `HP * A²`, a scaled high-pass). Shelf modes: removed dead `* 0.0` terms; formulas were correct underneath
 - **R128 loudness** — integrated, ungated, and short-term LUFS now averaged in linear power domain per EBU R128 spec (was incorrectly averaging in dB domain)
 - **True peak detection** — upgraded from linear interpolation (which always equaled sample peak) to 4-point cubic Hermite interpolation for proper inter-sample peak detection
 - **`AudioClock::set_tempo()`** — now clamps negative and NaN values to 0 (was storing invalid values)
@@ -34,20 +35,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Graph processor** — output buffers reused across cycles (was allocating fresh `AudioBuffer::silence` per node per cycle)
 - **STFT** — scratch `real`/`imag` buffers allocated once and reused across frames (was allocating per frame)
 - **Noise reduction** — same scratch buffer reuse optimization
+- **R128 K-weighting** — filters samples directly instead of cloning the entire `AudioBuffer` (avoids duplicating metadata + allocation overhead)
 - **LevelMeter peak hold** — decay now scales by frame count (`powi(frames)`) for buffer-size-independent rate
 
 ### Added
 
 #### Annotations
-- `#[must_use]` on all public structs and pure functions across the crate (~50+ types)
-- `#[inline]` on hot-path functions: `BiquadState::process`, `Oscillator::sample`, `Envelope::tick`, `Lfo::tick`, `StereoPanner::process`, `GainSmoother::smooth`, SIMD dispatch functions, clock accessors, MIDI translate functions, meter store/load
+- `#[must_use]` on all public structs and pure functions across the crate (~50+ types), including `BiquadFilter::process_sample()`, `SvfFilter::process_sample()`
+- `#[inline]` on hot-path functions: all DSP `process()` methods (BiquadFilter, Compressor, DeEsser, DelayLine, ModulatedDelay, EnvelopeLimiter, ParametricEq, GraphicEq, Reverb), `BiquadState::process`, `BiquadFilter::process_sample`, `Oscillator::sample`, `Envelope::tick`, `Lfo::tick`, `StereoPanner::process`, `GainSmoother::smooth`, SIMD dispatch functions, clock accessors, MIDI translate functions, meter store/load
 - `AudioBuffer::silence()` now debug-asserts `channels > 0` and `sample_rate > 0`
+- `// SAFETY:` comments on all unsafe blocks in NEON biquad_stereo (aarch64.rs)
 
 #### Tracing
-- `tracing::debug!` on all DSP effect constructors and `set_sample_rate` calls
+- `tracing::debug!` on all DSP effect constructors: BiquadFilter, SvfFilter, DelayLine, ModulatedDelay, StereoPanner, GainSmoother, GraphicEq, NoiseReducer (plus existing Compressor, Limiter, DeEsser, ParametricEq, Reverb)
 - `tracing::debug!` on all analysis entry points (measure_r128, analyze_dynamics, stft, chromagram, detect_onsets)
 - `tracing::warn!` on all error paths in conversion functions and FFI null returns
 - `tracing::debug!` on noise_reduce, resample_sinc, Graph::compile
+
+#### DSP
+- **`NoiseReducer`** — stateful spectral noise reducer that reuses Hann window, FFT scratch, and magnitude buffers across calls (avoids 3 large allocations per call). `noise_reduce()` still available as convenience wrapper
 
 #### Documentation
 - Redundant explicit rustdoc link targets fixed in lib.rs
@@ -65,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Voice profiles: male, female, child with breathiness, vibrato, jitter, shimmer control
 
 #### Tests
-- 20 new tests: 9 P(-1) hardening tests + 7 synthesis tests + 4 voice tests (450 total)
+- 27 new tests: 7 SVF peak/shelf correctness + 9 P(-1) hardening + 7 synthesis + 4 voice (550 total)
 
 ### Performance
 - stereo_to_mono: 97µs → 54µs (−45%)

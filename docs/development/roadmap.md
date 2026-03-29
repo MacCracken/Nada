@@ -71,8 +71,8 @@
 All must be true:
 
 - [ ] API frozen: AudioBuffer, AudioClock, Spectrum, MIDI, Graph, Meter — all fields private, accessors only
-- [ ] No panics in non-test code (0 unwrap/expect/assert in production paths)
-- [ ] All 106+ `unsafe` blocks have `// SAFETY:` comments
+- [x] No panics in non-test code (0 unwrap/expect/assert in production paths)
+- [x] All 106+ `unsafe` blocks have `// SAFETY:` comments
 - [ ] DSP effects within 0.01 dB of reference implementations
 - [ ] SIMD parity verified on x86_64 (SSE2 + AVX2) and aarch64 (NEON)
 - [ ] Format conversion: i16, i24, i32, f32, f64, u8 — all with roundtrip tests
@@ -80,9 +80,9 @@ All must be true:
 - [ ] 3+ downstream consumers in production
 - [ ] 90%+ test coverage
 - [ ] docs.rs complete — every public type documented with examples
-- [ ] Golden benchmark numbers published
-- [ ] Zero clippy warnings
-- [ ] Supply chain clean (audit + deny + vet)
+- [x] Golden benchmark numbers published
+- [x] Zero clippy warnings
+- [x] Supply chain clean (audit + deny + vet)
 
 ---
 

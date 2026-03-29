@@ -71,6 +71,7 @@ impl GainSmoother {
     /// Both values should be in `0.0..=1.0`. Higher values mean faster convergence.
     /// Typical values: attack `0.3`, release `0.05`.
     pub fn new(attack: f32, release: f32) -> Self {
+        tracing::debug!(attack, release, "GainSmoother::new");
         Self {
             params: GainSmootherParams {
                 attack: attack.clamp(0.0, 1.0),

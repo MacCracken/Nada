@@ -191,6 +191,14 @@ impl BiquadFilter {
         sample_rate: u32,
         channels: u32,
     ) -> Self {
+        tracing::debug!(
+            ?filter_type,
+            freq_hz,
+            q,
+            sample_rate,
+            channels,
+            "BiquadFilter::new"
+        );
         Self {
             coeffs: BiquadCoeffs::design(filter_type, freq_hz, q, sample_rate),
             states: vec![BiquadState::default(); channels as usize],
@@ -214,6 +222,7 @@ impl BiquadFilter {
     }
 
     /// Process an entire audio buffer in-place.
+    #[inline]
     pub fn process(&mut self, buf: &mut AudioBuffer) {
         if self.bypassed {
             return;
@@ -257,6 +266,8 @@ impl BiquadFilter {
     }
 
     /// Process a single sample for a given channel.
+    #[inline]
+    #[must_use]
     pub fn process_sample(&mut self, sample: f32, channel: usize) -> f32 {
         if channel < self.states.len() {
             self.states[channel].process(sample as f64, &self.coeffs) as f32

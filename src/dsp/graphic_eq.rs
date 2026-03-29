@@ -138,6 +138,7 @@ pub struct GraphicEq {
 impl GraphicEq {
     /// Create a new graphic EQ (all bands flat, disabled).
     pub fn new(sample_rate: u32, channels: u32) -> Self {
+        tracing::debug!(sample_rate, channels, "GraphicEq::new");
         let settings = GraphicEqSettings::default();
         let inner = Self::build_eq(&settings, sample_rate, channels);
         Self {
@@ -151,6 +152,7 @@ impl GraphicEq {
     /// Process a buffer through the 10-band EQ.
     ///
     /// Bypasses processing entirely if disabled or flat.
+    #[inline]
     pub fn process(&mut self, buf: &mut AudioBuffer) {
         if self.settings.is_flat() {
             return;

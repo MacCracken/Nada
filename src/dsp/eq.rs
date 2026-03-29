@@ -128,6 +128,7 @@ impl ParametricEq {
     }
 
     /// Process an audio buffer through all enabled bands in series.
+    #[inline]
     pub fn process(&mut self, buf: &mut AudioBuffer) {
         if self.bypassed {
             return;

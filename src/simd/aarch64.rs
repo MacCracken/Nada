@@ -448,6 +448,7 @@ unsafe fn biquad_stereo_neon(samples: &mut [f32], coeffs: &[f64; 5], state: &mut
     let va1 = unsafe { vdupq_n_f64(a1) };
     let va2 = unsafe { vdupq_n_f64(a2) };
 
+    // SAFETY: vld1q_f64 loads 2×f64 from a valid stack-allocated array pointer.
     // z1 = [z1_L, z1_R], z2 = [z2_L, z2_R]
     let mut vz1 = unsafe { vld1q_f64([state[0], state[2]].as_ptr()) };
     let mut vz2 = unsafe { vld1q_f64([state[1], state[3]].as_ptr()) };
@@ -455,6 +456,8 @@ unsafe fn biquad_stereo_neon(samples: &mut [f32], coeffs: &[f64; 5], state: &mut
     let frames = samples.len() / 2;
     for f in 0..frames {
         let idx = f * 2;
+        // SAFETY: idx+1 < samples.len() because frames = len/2 and idx = f*2 where f < frames.
+        // All NEON f64 intrinsics operate on valid registers loaded above.
         unsafe {
             let in_lr = vld1q_f64([samples[idx] as f64, samples[idx + 1] as f64].as_ptr());
             // out = b0 * in + z1
@@ -469,7 +472,7 @@ unsafe fn biquad_stereo_neon(samples: &mut [f32], coeffs: &[f64; 5], state: &mut
         }
     }
 
-    // Write state back
+    // SAFETY: vgetq_lane_f64 extracts f64 from valid NEON registers; state has 4 elements.
     unsafe {
         state[0] = vgetq_lane_f64(vz1, 0);
         state[1] = vgetq_lane_f64(vz2, 0);

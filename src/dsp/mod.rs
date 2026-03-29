@@ -33,7 +33,7 @@ pub use graphic_eq::{GraphicEq, GraphicEqSettings, ISO_BANDS};
 pub use lfo::{Lfo, LfoShape};
 pub use limiter::{EnvelopeLimiter, LimiterParams};
 #[cfg(feature = "analysis")]
-pub use noise_reduction::noise_reduce;
+pub use noise_reduction::{NoiseReducer, noise_reduce};
 pub use oscillator::{Oscillator, Waveform};
 pub use pan::StereoPanner;
 pub use reverb::{Reverb, ReverbParams};

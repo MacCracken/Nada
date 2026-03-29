@@ -16,6 +16,7 @@ pub struct StereoPanner {
 impl StereoPanner {
     /// Create a panner at the given position (-1.0 to +1.0).
     pub fn new(pan: f32) -> Self {
+        tracing::debug!(pan, "StereoPanner::new");
         let mut p = Self {
             pan: 0.0,
             gain_l: 0.0,

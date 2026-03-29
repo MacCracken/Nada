@@ -32,6 +32,15 @@ impl DelayLine {
         sample_rate: u32,
         channels: u32,
     ) -> Self {
+        tracing::debug!(
+            delay_ms,
+            max_delay_ms,
+            feedback,
+            mix,
+            sample_rate,
+            channels,
+            "DelayLine::new"
+        );
         let max_samples = ((max_delay_ms.max(delay_ms) / 1000.0) * sample_rate as f32) as usize;
         let max_samples = max_samples.max(1);
         let delay_samples = ((delay_ms / 1000.0) * sample_rate as f32) as usize;
@@ -49,6 +58,7 @@ impl DelayLine {
     }
 
     /// Process an audio buffer in-place.
+    #[inline]
     pub fn process(&mut self, buf: &mut AudioBuffer) {
         if self.bypassed {
             return;
@@ -187,6 +197,7 @@ pub struct ModulatedDelay {
 impl ModulatedDelay {
     /// Create a new modulated delay.
     pub fn new(params: ModulatedDelayParams, sample_rate: u32, channels: u32) -> Self {
+        tracing::debug!(?params, sample_rate, channels, "ModulatedDelay::new");
         let max_ms = params.base_delay_ms + params.depth_ms + 1.0;
         Self {
             delay: DelayLine::new(
@@ -205,6 +216,7 @@ impl ModulatedDelay {
     }
 
     /// Process an audio buffer in-place.
+    #[inline]
     pub fn process(&mut self, buf: &mut AudioBuffer) {
         if self.bypassed {
             return;

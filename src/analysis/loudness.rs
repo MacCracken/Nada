@@ -61,12 +61,13 @@ pub fn measure_r128(buf: &AudioBuffer) -> crate::Result<R128Loudness> {
     let mut block_loudness: Vec<f32> = Vec::new();
     let mut pos = 0;
 
-    while pos + block_samples <= filtered.frames {
+    let frames = buf.frames;
+    while pos + block_samples <= frames {
         let mut mean_sq = 0.0f64;
         let mut count = 0usize;
         for frame in pos..pos + block_samples {
             for c in 0..ch {
-                let s = filtered.samples[frame * ch + c] as f64;
+                let s = filtered[frame * ch + c] as f64;
                 mean_sq += s * s;
                 count += 1;
             }
@@ -144,11 +145,11 @@ pub fn measure_r128(buf: &AudioBuffer) -> crate::Result<R128Loudness> {
     })
 }
 
-/// Apply K-weighting filter (high shelf + high pass).
-fn apply_k_weighting(buf: &AudioBuffer) -> AudioBuffer {
-    let mut filtered = buf.clone();
+/// Apply K-weighting filter — returns filtered samples (avoids cloning AudioBuffer metadata).
+fn apply_k_weighting(buf: &AudioBuffer) -> Vec<f32> {
     let sr = buf.sample_rate;
-    let ch = buf.channels;
+    let ch = buf.channels as usize;
+    let mut samples = buf.samples().to_vec();
 
     // Stage 1: High shelf at ~1681 Hz, +4 dB (pre-emphasis for head acoustics)
     let shelf_coeffs =
@@ -158,14 +159,13 @@ fn apply_k_weighting(buf: &AudioBuffer) -> AudioBuffer {
     let hp_coeffs = BiquadCoeffs::design(FilterType::HighPass, 38.0, 0.5, sr);
 
     // Apply both filters
-    let mut shelf_states: Vec<(f64, f64)> = vec![(0.0, 0.0); ch as usize];
-    let mut hp_states: Vec<(f64, f64)> = vec![(0.0, 0.0); ch as usize];
+    let mut shelf_states: Vec<(f64, f64)> = vec![(0.0, 0.0); ch];
+    let mut hp_states: Vec<(f64, f64)> = vec![(0.0, 0.0); ch];
 
-    let ch = ch as usize;
-    for frame in 0..filtered.frames {
+    for frame in 0..buf.frames {
         for c in 0..ch {
             let idx = frame * ch + c;
-            let mut x = filtered.samples[idx] as f64;
+            let mut x = samples[idx] as f64;
 
             // High shelf
             let (z1, z2) = &mut shelf_states[c];
@@ -180,11 +180,11 @@ fn apply_k_weighting(buf: &AudioBuffer) -> AudioBuffer {
             *z1 = hp_coeffs.b1 * x - hp_coeffs.a1 * out + *z2;
             *z2 = hp_coeffs.b2 * x - hp_coeffs.a2 * out;
 
-            filtered.samples[idx] = out as f32;
+            samples[idx] = out as f32;
         }
     }
 
-    filtered
+    samples
 }
 
 /// Average block LUFS values in the linear power domain per EBU R128.
@@ -260,7 +260,13 @@ mod tests {
         let filtered = apply_k_weighting(&buf);
 
         // High shelf boosts 5kHz, so filtered RMS should be higher
-        assert!(filtered.rms() > buf.rms() * 1.1);
+        let filtered_rms = (filtered
+            .iter()
+            .map(|s| (*s as f64) * (*s as f64))
+            .sum::<f64>()
+            / filtered.len() as f64)
+            .sqrt() as f32;
+        assert!(filtered_rms > buf.rms() * 1.1);
     }
 
     #[test]

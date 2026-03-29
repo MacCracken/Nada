@@ -75,6 +75,15 @@ impl SvfFilter {
         sample_rate: u32,
         channels: u32,
     ) -> Self {
+        tracing::debug!(
+            ?mode,
+            freq_hz,
+            q,
+            gain_db,
+            sample_rate,
+            channels,
+            "SvfFilter::new"
+        );
         let mut f = Self {
             mode,
             freq_hz,
@@ -174,6 +183,7 @@ impl SvfFilter {
 
     /// Process a single sample for a given channel.
     #[inline]
+    #[must_use]
     pub fn process_sample(&mut self, sample: f32, channel: usize) -> f32 {
         if channel < self.states.len() {
             self.process_sample_internal(sample as f64, channel) as f32
@@ -221,6 +231,14 @@ impl SvfFilter {
         self.a = 10.0f64.powf(self.gain_db as f64 / 40.0); // sqrt of dB→linear
 
         match self.mode {
+            SvfMode::Peak => {
+                // Cytomic peak EQ: k = 1/(Q*A) so bandpass gain scales with boost/cut
+                self.k = 1.0 / (self.q.max(0.01) as f64 * self.a);
+                let denom = 1.0 + self.g * (self.g + self.k);
+                self.a1 = 1.0 / denom;
+                self.a2 = self.g * self.a1;
+                self.a3 = self.g * self.a2;
+            }
             SvfMode::LowShelf => {
                 self.g *= self.a.sqrt();
                 let denom = 1.0 + self.g * (self.g + self.k);
@@ -262,21 +280,17 @@ impl SvfFilter {
             SvfMode::Notch => input - self.k * v1,
             SvfMode::AllPass => input - 2.0 * self.k * v1,
             SvfMode::Peak => {
-                let lp = v2;
-                let hp = input - self.k * v1 - v2;
-                lp + hp * self.a * self.a - lp
+                // Cytomic peak EQ: boost/cut the bandpass component
+                input + (self.a * self.a - 1.0) * v1
             }
             SvfMode::LowShelf => {
-                let lp = v2;
-                let hp = input - self.k * v1 - v2;
-                input + (self.a * self.a - 1.0) * lp + (self.a - 1.0) * self.k * v1
-                    - (self.a * self.a - 1.0) * hp * 0.0 // Only LP shelved
+                // Cytomic low shelf: boost/cut LP region, BP transition band
+                input + (self.a * self.a - 1.0) * v2 + (self.a - 1.0) * self.k * v1
             }
             SvfMode::HighShelf => {
-                let lp = v2;
                 let hp = input - self.k * v1 - v2;
+                // Cytomic high shelf: boost/cut HP region, BP transition band
                 input + (self.a * self.a - 1.0) * hp + (self.a - 1.0) * self.k * v1
-                    - (self.a * self.a - 1.0) * lp * 0.0 // Only HP shelved
             }
         }
     }
@@ -346,8 +360,8 @@ mod tests {
     #[test]
     fn reset_clears_state() {
         let mut svf = SvfFilter::new(SvfMode::LowPass, 1000.0, 0.707, 0.0, 44100, 2);
-        svf.process_sample(0.5, 0);
-        svf.process_sample(0.5, 1);
+        let _ = svf.process_sample(0.5, 0);
+        let _ = svf.process_sample(0.5, 1);
         svf.reset();
         // After reset, processing silence should give silence
         let out = svf.process_sample(0.0, 0);
@@ -394,5 +408,111 @@ mod tests {
         let mut svf = SvfFilter::new(SvfMode::LowPass, 2000.0, 0.707, 0.0, 44100, 1);
         svf.process(&mut buf);
         assert!(buf.samples().iter().all(|s| s.is_finite()));
+    }
+
+    #[test]
+    fn peak_unity_passthrough() {
+        // At 0 dB gain, peak filter should pass signal unchanged
+        let mut buf = make_sine(1000.0, 44100, 4096);
+        let original: Vec<f32> = buf.samples().to_vec();
+        let mut svf = SvfFilter::new(SvfMode::Peak, 1000.0, 1.0, 0.0, 44100, 1);
+        svf.process(&mut buf);
+        // After settling, output should closely match input
+        for (out, orig) in buf.samples()[2048..4096]
+            .iter()
+            .zip(&original[2048..4096])
+        {
+            assert!(
+                (out - orig).abs() < 0.01,
+                "Peak 0dB diverged: {out} vs {orig}",
+            );
+        }
+    }
+
+    #[test]
+    fn peak_boosts_center() {
+        // +12 dB peak at 1kHz should boost a 1kHz sine
+        let mut buf = make_sine(1000.0, 44100, 8192);
+        let rms_before = buf.rms();
+        let mut svf = SvfFilter::new(SvfMode::Peak, 1000.0, 1.0, 12.0, 44100, 1);
+        svf.process(&mut buf);
+        let rms_after = buf.rms();
+        assert!(
+            rms_after > rms_before * 1.5,
+            "Peak +12dB didn't boost: before={rms_before} after={rms_after}"
+        );
+    }
+
+    #[test]
+    fn peak_leaves_far_frequencies() {
+        // +12 dB peak at 1kHz should barely affect 100 Hz
+        let mut buf = make_sine(100.0, 44100, 8192);
+        let rms_before = buf.rms();
+        let mut svf = SvfFilter::new(SvfMode::Peak, 1000.0, 2.0, 12.0, 44100, 1);
+        svf.process(&mut buf);
+        let rms_after = buf.rms();
+        let ratio = rms_after / rms_before;
+        assert!(
+            (0.7..1.5).contains(&ratio),
+            "Peak affected distant freq too much: ratio={ratio}"
+        );
+    }
+
+    #[test]
+    fn low_shelf_boosts_lows() {
+        // +12 dB low shelf at 1kHz should boost 100 Hz
+        let mut buf = make_sine(100.0, 44100, 8192);
+        let rms_before = buf.rms();
+        let mut svf = SvfFilter::new(SvfMode::LowShelf, 1000.0, 0.707, 12.0, 44100, 1);
+        svf.process(&mut buf);
+        let rms_after = buf.rms();
+        assert!(
+            rms_after > rms_before * 1.5,
+            "LowShelf didn't boost lows: before={rms_before} after={rms_after}"
+        );
+    }
+
+    #[test]
+    fn low_shelf_spares_highs() {
+        // +12 dB low shelf at 1kHz should barely affect 10kHz
+        let mut buf = make_sine(10000.0, 44100, 8192);
+        let rms_before = buf.rms();
+        let mut svf = SvfFilter::new(SvfMode::LowShelf, 1000.0, 0.707, 12.0, 44100, 1);
+        svf.process(&mut buf);
+        let rms_after = buf.rms();
+        let ratio = rms_after / rms_before;
+        assert!(
+            (0.7..1.5).contains(&ratio),
+            "LowShelf affected highs too much: ratio={ratio}"
+        );
+    }
+
+    #[test]
+    fn high_shelf_boosts_highs() {
+        // +12 dB high shelf at 1kHz should boost 10kHz
+        let mut buf = make_sine(10000.0, 44100, 8192);
+        let rms_before = buf.rms();
+        let mut svf = SvfFilter::new(SvfMode::HighShelf, 1000.0, 0.707, 12.0, 44100, 1);
+        svf.process(&mut buf);
+        let rms_after = buf.rms();
+        assert!(
+            rms_after > rms_before * 1.5,
+            "HighShelf didn't boost highs: before={rms_before} after={rms_after}"
+        );
+    }
+
+    #[test]
+    fn high_shelf_spares_lows() {
+        // +12 dB high shelf at 1kHz should barely affect 100 Hz
+        let mut buf = make_sine(100.0, 44100, 8192);
+        let rms_before = buf.rms();
+        let mut svf = SvfFilter::new(SvfMode::HighShelf, 1000.0, 0.707, 12.0, 44100, 1);
+        svf.process(&mut buf);
+        let rms_after = buf.rms();
+        let ratio = rms_after / rms_before;
+        assert!(
+            (0.7..1.5).contains(&ratio),
+            "HighShelf affected lows too much: ratio={ratio}"
+        );
     }
 }

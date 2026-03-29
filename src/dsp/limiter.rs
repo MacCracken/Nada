@@ -128,6 +128,7 @@ impl EnvelopeLimiter {
     }
 
     /// Process an audio buffer in-place.
+    #[inline]
     pub fn process(&mut self, buf: &mut AudioBuffer) {
         if self.bypassed {
             return;

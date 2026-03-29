@@ -225,6 +225,7 @@ impl Reverb {
     ///
     /// Mono buffers are processed through the left channel path only.
     /// Stereo and multichannel buffers use L/R decorrelated paths.
+    #[inline]
     pub fn process(&mut self, buf: &mut AudioBuffer) {
         if self.bypassed {
             return;
