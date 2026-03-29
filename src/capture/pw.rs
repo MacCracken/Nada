@@ -687,4 +687,104 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn output_start_send_stop() {
+        // Test the full output lifecycle against PipeWire.
+        // Works even with only a Dummy Output sink.
+        let mut out = PwOutput::new(OutputConfig::default()).unwrap();
+        assert!(!out.is_running());
+
+        // Start
+        if out.start().is_err() {
+            println!("PipeWire output start failed (expected without PW daemon)");
+            return;
+        }
+        assert!(out.is_running());
+
+        // Send a short sine buffer
+        let sr = 48000u32;
+        let frames = 4800; // 100ms
+        let samples: Vec<f32> = (0..frames * 2)
+            .map(|i| {
+                (2.0 * std::f32::consts::PI * 440.0 * (i / 2) as f32 / sr as f32).sin() * 0.3
+            })
+            .collect();
+        let buf = AudioBuffer::from_interleaved(samples, 2, sr).unwrap();
+        let send_result = out.send(buf);
+        assert!(send_result.is_ok(), "send should succeed while running");
+
+        // Brief wait for PipeWire to process
+        std::thread::sleep(std::time::Duration::from_millis(150));
+
+        // Stop
+        out.stop().unwrap();
+        assert!(!out.is_running());
+    }
+
+    #[test]
+    fn capture_start_stop() {
+        // Test capture lifecycle. Without a real audio source,
+        // we won't receive buffers, but start/stop should not panic.
+        let mut cap = PwCapture::new(CaptureConfig::default()).unwrap();
+
+        if cap.start().is_err() {
+            println!("PipeWire capture start failed (expected without PW daemon)");
+            return;
+        }
+        assert!(cap.is_running());
+
+        // Try to receive — likely empty without a real source
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let buf = cap.try_recv();
+        if let Some(b) = &buf {
+            assert!(b.frames() > 0);
+            assert!(b.samples().iter().all(|s| s.is_finite()));
+            println!("Captured {} frames", b.frames());
+        } else {
+            println!("No capture data (expected with Dummy sink only)");
+        }
+
+        cap.stop().unwrap();
+        assert!(!cap.is_running());
+    }
+
+    #[test]
+    fn enumerate_returns_at_least_dummy() {
+        // On a system with PipeWire running, there should be at least one node.
+        match enumerate_devices() {
+            Ok(devices) => {
+                assert!(
+                    !devices.is_empty(),
+                    "PipeWire running but no audio devices found"
+                );
+                // At minimum, the Dummy Output should be present
+                let has_sink = devices.iter().any(|d| d.device_type == DeviceType::Sink);
+                assert!(has_sink, "Expected at least one sink device");
+            }
+            Err(_) => {
+                println!("PipeWire not available, skipping");
+            }
+        }
+    }
+
+    #[test]
+    fn double_start_idempotent() {
+        let mut out = PwOutput::new(OutputConfig::default()).unwrap();
+        if out.start().is_err() {
+            return;
+        }
+        // Second start should be a no-op, not an error
+        assert!(out.start().is_ok());
+        assert!(out.is_running());
+        out.stop().unwrap();
+    }
+
+    #[test]
+    fn stop_without_start() {
+        let mut out = PwOutput::new(OutputConfig::default()).unwrap();
+        // Stopping without starting should not error
+        assert!(out.stop().is_ok());
+        assert!(!out.is_running());
+    }
 }

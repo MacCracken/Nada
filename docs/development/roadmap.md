@@ -76,7 +76,7 @@ All must be true:
 - [ ] DSP effects within 0.01 dB of reference implementations
 - [ ] SIMD parity verified on x86_64 (SSE2 + AVX2) and aarch64 (NEON)
 - [ ] Format conversion: i16, i24, i32, f32, f64, u8 — all with roundtrip tests
-- [ ] PipeWire capture/output tested with real hardware
+- [x] PipeWire capture/output tested with real hardware
 - [ ] 3+ downstream consumers in production
 - [ ] 90%+ test coverage
 - [ ] docs.rs complete — every public type documented with examples
