@@ -41,16 +41,16 @@ thiserror = "2"
 tracing = "0.1"
 
 # Synthesis
-naad = { version = "1.0.0", optional = true }
-svara = { version = "1.1.0", optional = true, default-features = false, features = ["naad-backend"] }
-prani = { version = "1.1.0", optional = true, default-features = false }
-nidhi = { version = "1.1.0", optional = true, default-features = false }
-garjan = { version = "1.0.0", optional = true, default-features = false, features = ["naad-backend"] }
-ghurni = { version = "1.0.0", optional = true, features = ["naad-backend"] }
-shabda = { version = "1.0.0", optional = true, default-features = false }
+naad = { version = "1", optional = true }
+svara = { version = "1", optional = true, default-features = false, features = ["naad-backend"] }
+prani = { version = "1", optional = true, default-features = false }
+nidhi = { version = "1", optional = true, default-features = false }
+garjan = { version = "1", optional = true, default-features = false, features = ["naad-backend"] }
+ghurni = { version = "1", optional = true, features = ["naad-backend"] }
+shabda = { version = "1", optional = true, default-features = false }
 
 # Acoustics
-goonj = { version = "1.1.1", optional = true, default-features = false, features = ["dhvani-compat", "wav"] }
+goonj = { version = "1", optional = true, default-features = false, features = ["dhvani-compat", "wav"] }
 
 # Parallel processing
 rayon = { version = "1", optional = true }
