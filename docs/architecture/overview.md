@@ -70,6 +70,16 @@ src/
 │   ├── mod.rs          Platform dispatch (x86_64/aarch64)
 │   ├── x86.rs          SSE2 + AVX2 kernels
 │   └── aarch64.rs      NEON kernels
+├── synthesis/          Synth engines via naad (subtractive, FM, additive, wavetable, granular, drum, vocoder)
+├── voice_synth/
+│   ├── mod.rs          Voice synthesis via svara (glottal, formant, phoneme, prosody, vocal tract)
+│   └── bhava_bridge.rs Personality/mood → voice parameter mapping via bhava
+├── creature/           Animal/creature vocals via prani
+├── environment/        Nature/environmental sounds via garjan
+├── mechanical/         Mechanical sounds via ghurni
+├── sampler/            Sample playback via nidhi
+├── acoustics/          Room acoustics via goonj (IR, convolution, FDN, ambisonics, presets)
+├── g2p/                Grapheme-to-phoneme via shabda (G2P engine, SSML, heteronyms)
 ├── ffi.rs              C-compatible nada_buffer_* API
 └── tests/
     ├── mod.rs          Integration tests
@@ -122,9 +132,7 @@ FFT magnitude analysis. Provides frequency bins, dominant frequency detection, a
 
 | Project | Usage |
 |---------|-------|
-| **shruti** | DAW — drops engine/dsp crates, uses dhvani for all audio math |
-| **jalwa** | Media player — playback EQ, visualizer spectrum, resampling |
+| **shruti** | DAW — all audio math (mix, DSP, analysis, transport, synthesis) |
+| **jalwa** | Media player — playback EQ, spectrum visualizer, resampling, normalization |
 | **aethersafta** | Compositor — PipeWire capture, audio mixing for streams |
-| **tarang** | Media framework — audio analysis, fingerprinting input |
-| **hoosh** | Inference gateway — audio preprocessing for whisper STT |
-| **Streaming app** | Live broadcast — mic processing, desktop audio capture |
+| **kiran** | Game engine — game audio, spatial sound, creature/environment synthesis |

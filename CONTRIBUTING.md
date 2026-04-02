@@ -83,8 +83,8 @@ src/
 
 ## Versioning
 
-Dhvani uses `day.month` SemVer (e.g., `0.22.3`). Version bumps are managed by maintainers.
+Dhvani uses SemVer. Version bumps are managed by maintainers.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under AGPL-3.0-only.
+By contributing, you agree that your contributions will be licensed under GPL-3.0-only.

@@ -25,6 +25,8 @@
 //! | [`synthesis`] | Synthesis engines: subtractive, FM, additive, wavetable, granular, physical, drum, vocoder *(feature: `synthesis`)* |
 //! | [`voice_synth`] | Voice synthesis: glottal source, formant, phoneme, prosody, vocal tract *(feature: `voice`)* |
 //! | [`creature`] | Creature/animal vocal synthesis: species-specific voice models, call patterns *(feature: `creature`)* |
+//! | [`environment`] | Environmental/nature sound synthesis: thunder, rain, wind, fire, impacts *(feature: `environment`)* |
+//! | [`mechanical`] | Mechanical sound synthesis: engines, gears, motors, turbines *(feature: `mechanical`)* |
 //! | [`sampler`] | Sample playback engine: key/velocity zones, loop modes, time-stretching *(feature: `sampler`)* |
 //! | [`acoustics`] | Room acoustics integration via goonj: convolution reverb, FDN, ambisonics, room presets *(feature: `acoustics`)* |
 //! | [`g2p`] | Grapheme-to-phoneme: text to phoneme sequences for vocal synthesis *(feature: `g2p`)* |

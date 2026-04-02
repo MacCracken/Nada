@@ -5,7 +5,7 @@
 **Dhvani** (Sanskrit: sound) — Core audio engine — buffers, DSP, mixing, resampling, analysis, PipeWire capture
 
 - **Type**: Flat library crate
-- **License**: AGPL-3.0-only
+- **License**: GPL-3.0-only
 - **MSRV**: 1.89
 - **Version**: SemVer 0.D.M pre-1.0
 

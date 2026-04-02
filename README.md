@@ -9,7 +9,7 @@ Buffers, DSP, resampling, mixing, analysis, synthesis, and capture — in a sing
 [![Crates.io](https://img.shields.io/crates/v/dhvani.svg)](https://crates.io/crates/dhvani)
 [![docs.rs](https://docs.rs/dhvani/badge.svg)](https://docs.rs/dhvani)
 [![CI](https://github.com/MacCracken/dhvani/actions/workflows/ci.yml/badge.svg)](https://github.com/MacCracken/dhvani/actions/workflows/ci.yml)
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
 ---
 
@@ -41,7 +41,7 @@ dhvani is the **audio processing core** — it owns the audio math so nobody els
 
 ```toml
 [dependencies]
-dhvani = "0.22"
+dhvani = "1"
 ```
 
 ```rust
@@ -58,10 +58,10 @@ let drums = AudioBuffer::from_interleaved(samples_b, 2, 44100)?;
 let mut mixed = mix(&[&vocals, &drums])?;
 
 // Process
-let mut comp = Compressor::new(CompressorParams {
-    threshold_db: -18.0, ratio: 4.0, attack_ms: 10.0, release_ms: 100.0,
-    makeup_gain_db: 3.0, knee_db: 6.0, ..Default::default()
-}, 44100)?;
+let mut comp = Compressor::new(CompressorParams::new()
+    .with_threshold(-18.0).with_ratio(4.0).with_attack(10.0).with_release(100.0)
+    .with_makeup_gain(3.0).with_knee(6.0),
+44100)?;
 comp.process(&mut mixed);
 dsp::normalize(&mut mixed, 0.95);
 
@@ -93,22 +93,23 @@ let output = resample_linear(&mixed, 48000)?;
 | `sampler` | No | Sample playback via [nidhi](https://crates.io/crates/nidhi) |
 | `acoustics` | No | Room acoustics via [goonj](https://crates.io/crates/goonj). Implies `analysis` |
 | `g2p` | No | Grapheme-to-phoneme via [shabda](https://crates.io/crates/shabda). Implies `voice` |
+| `bhava-voice` | No | Personality/mood to voice mapping via [bhava](https://crates.io/crates/bhava). Implies `voice` |
 | `pipewire` | No | PipeWire audio capture/output (Linux) |
 | `parallel` | No | Parallel graph execution via rayon. Implies `graph` |
 | `full` | No | All features |
 
 ```toml
 # Everything (default: dsp + analysis + midi + graph + simd)
-dhvani = "0.22"
+dhvani = "1"
 
 # Core only — buffers, mixing, resampling, clock
-dhvani = { version = "0.22", default-features = false }
+dhvani = { version = "1", default-features = false }
 
 # Media player — DSP + analysis, no MIDI or graph
-dhvani = { version = "0.22", default-features = false, features = ["dsp", "analysis", "simd"] }
+dhvani = { version = "1", default-features = false, features = ["dsp", "analysis", "simd"] }
 
 # Full synthesis + acoustics
-dhvani = { version = "0.22", features = ["full"] }
+dhvani = { version = "1", features = ["full"] }
 ```
 
 ---
@@ -164,7 +165,8 @@ dhvani (audio engine)
 ├── garjan (environmental sounds)    [feature: environment]
 ├── ghurni (mechanical sounds)       [feature: mechanical]
 ├── nidhi (sample playback)          [feature: sampler]
-└── shabda (grapheme-to-phoneme)     [feature: g2p]
+├── shabda (grapheme-to-phoneme)     [feature: g2p]
+└── bhava (personality/mood)         [feature: bhava-voice]
 ```
 
 ---
@@ -178,12 +180,12 @@ cd dhvani
 cargo build                          # default features
 cargo build --features full          # everything
 cargo build --features pipewire      # with PipeWire (Linux, requires libpipewire-dev)
-cargo test --features full           # 597 tests + 22 doctests
-cargo bench --features full          # 51 benchmarks
+cargo test --features full           # 663 tests + 22 doctests
+cargo bench --features full          # 65 benchmarks
 ```
 
 ---
 
 ## License
 
-AGPL-3.0-only. See [LICENSE](LICENSE) for details.
+GPL-3.0-only. See [LICENSE](LICENSE) for details.
