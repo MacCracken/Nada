@@ -23,6 +23,7 @@ Direct dependencies to monitor for updates, CVEs, and breaking changes.
 | **ghurni** | 1.0.0 | `mechanical` | AGNOS mechanical sounds — depends on naad |
 | **nidhi** | 1.1.0 | `sampler` | AGNOS sample playback |
 | **shabda** | 2.0.0 | `g2p` | AGNOS grapheme-to-phoneme — depends on shabdakosh, svara |
+| **bhava** | 2.0.0 | `bhava-voice` | AGNOS emotion/personality engine — mood, traits, stress, energy |
 | **rayon** | 1 | `parallel` | Stable, well-maintained |
 | **pipewire** | 0.9 | `pipewire` | Rust bindings — track upstream PipeWire releases |
 

@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-04-01
+
+### Changed
+
+#### Dependencies — BREAKING (minor)
+- **svara** upgraded from 1.x to 2.0.0 — voice synthesis engine gains LOD, object pooling, batch rendering, trajectory planning, nasalization, vocal effort, tonal language support
+- **shabda** upgraded from 1.x to 2.0.0 — G2P engine gains SSML parsing, heteronym disambiguation, conversion options, timing profiles
+- **bhava** 2.0.0 added as optional dependency (feature: `bhava-voice`) — personality/mood to voice parameter mapping
+
+### Added
+
+#### Bhava Voice Bridge (feature: `bhava-voice`)
+- **`voice_from_personality()`** — derive voice baseline from personality traits (warmth → breathiness, confidence → f0 range, empathy → vibrato, patience → vibrato rate, formality → pressed phonation)
+- **`prosody_from_mood()`** — generate f0 contour, duration, and amplitude from emotional state (joy/arousal → pitch, arousal → tempo, frustration → contour jaggedness)
+- **`effort_from_mood()`** — map arousal/dominance/frustration to vocal effort level (whisper → shout)
+- **`apply_mood_to_voice()`** — real-time voice coloring from current mood (per-utterance)
+- **`apply_stress_to_voice()`** — chronic stress degrades voice quality (jitter, shimmer, raised f0, narrowed range)
+- **`quality_from_energy()`** — energy/performance → synthesis LOD (full/reduced/minimal)
+- **`intonation_from_mood()`** — mood → intonation pattern selection (exclamatory, interrogative, continuation, declarative)
+
+#### Voice Synthesis Bridge (feature: `voice`)
+- **`VocalEffort`**, **`EffortParams`** — coordinated vocal effort levels (whisper → soft → normal → loud → shout) with physically-modeled parameter sets
+- **`Quality`** — LOD control for multi-voice rendering (full/reduced/minimal pipeline complexity)
+- **`Tone`** — lexical tone support for tonal languages (9 variants: Mandarin tones 1–5, Thai/Vietnamese/African patterns) with f0 contour generation
+- **`Nasalization`**, **`detect_nasalization()`** — anticipatory nasalization detection and synthesis across phoneme sequences
+- **`synthesize_phoneme_nasalized()`** — single-phoneme synthesis with nasal coupling
+- **`VoiceOnsetTime`** — VOT parameters for plosive consonants (Lisker & Abramson model)
+- **`SynthesisContext`** — reusable synthesis context for zero-allocation per-phoneme rendering
+- **`phoneme_spectral_tilt()`**, **`height_adjusted_amplitudes()`** — phoneme-level spectral analysis functions
+- **`SynthesisPool`** — pre-allocated object pool for zero-allocation batch phoneme rendering with diagnostic counters and pre-warmed buffer capacity
+- **`BatchRenderer`**, **`RenderProgress`**, **`RenderOutput`** — non-real-time batch rendering with per-phoneme progress callbacks
+- **`TrajectoryPlanner`**, **`FormantKeypoint`** — Catmull-Rom spline formant trajectory planning across multi-phoneme windows with coarticulation resistance and speaking rate adjustment (Lindblom undershoot)
+
+#### G2P Bridge (feature: `g2p`)
+- **`ConvertOptions`** — G2P conversion options: emphasis detection, speaking rate (WPM), timing profiles
+- **`TimingProfile`** — independent scaling of vowel, consonant, and pause durations
+- **`heteronym` module** — context-based heteronym disambiguation for 20 English heteronyms (read, lead, live, wind, etc.) with preceding-word trigger rules
+- **`ssml` module** — SSML 1.1 subset parser (`<break>`, `<emphasis>`, `<prosody>`, `<phoneme>`, `<speak>`) with `no_std + alloc` compatibility
+
+#### Tests
+- 20 new voice synthesis tests: vocal effort, LOD quality, tone contours, nasalization detection, spectral tilt, height-adjusted amplitudes, VOT, synthesis context, nasalized phoneme synthesis, synthesis pool (render, capacity, batch), batch renderer (render, progress), trajectory planner (basic, speaking rate, keypoints)
+- 12 new G2P tests: convert options builder, timing profile, heteronym lookup/select/trigger/miss, SSML parse (plain text, break, emphasis, prosody, speaking rate WPM)
+- 625 unit + 22 doc-tests pass
+
+#### Benchmarks
+- **`benches/voice.rs`** (8 benchmarks): render_phoneme, render_sequence, synthesis_pool_render, synthesis_pool_batch, batch_renderer, trajectory_plan, trajectory_formants_at, detect_nasalization, glottal_vocal_tract
+- **`benches/g2p.rs`** (6 benchmarks): g2p_hello_world, g2p_sentence, speak, heteronym_lookup/select_variant, ssml_parse (plain/break/complex)
+
+### Fixed
+- Doc version strings: `0.22` → `1` in 8 module doc comments (voice_synth, g2p, synthesis, acoustics, creature, environment, mechanical, sampler)
+- Supply chain audits updated for all 16 bumped dependencies (svara 2.0.0, shabda 2.0.0, shabdakosh 2.0.0, garjan 1.1.0, hisab 1.4.0, winnow 1.0.1, + transitive bumps)
+- `dependency-watch.md` updated with current svara/shabda versions
+
 ## [1.0.0] — 2026-03-29
 
 ### Changed — BREAKING

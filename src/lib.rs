@@ -27,6 +27,7 @@
 //! | [`creature`] | Creature/animal vocal synthesis: species-specific voice models, call patterns *(feature: `creature`)* |
 //! | [`sampler`] | Sample playback engine: key/velocity zones, loop modes, time-stretching *(feature: `sampler`)* |
 //! | [`acoustics`] | Room acoustics integration via goonj: convolution reverb, FDN, ambisonics, room presets *(feature: `acoustics`)* |
+//! | [`g2p`] | Grapheme-to-phoneme: text to phoneme sequences for vocal synthesis *(feature: `g2p`)* |
 //! | [`capture`] | PipeWire capture/output, ring-buffer recording *(feature: `pipewire`)* |
 //!
 //! # Quick Start

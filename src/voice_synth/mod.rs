@@ -18,6 +18,13 @@
 
 use crate::buffer::AudioBuffer;
 
+// ── Bhava personality/mood bridge ───────────────────────────────────
+
+#[cfg(feature = "bhava-voice")]
+mod bhava_bridge;
+#[cfg(feature = "bhava-voice")]
+pub use bhava_bridge::*;
+
 // ── Voice profiles ──────────────────────────────────────────────────
 
 /// Speaker voice characteristics (f0, breathiness, vibrato, jitter, shimmer).

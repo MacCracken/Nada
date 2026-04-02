@@ -71,9 +71,9 @@
 - [ ] DSD (1-bit) — SACD / audiophile playback
 - [ ] Ambisonic (3D audio) channel layouts
 
-### Voice Synthesis (v2.0 scope)
+### Voice Synthesis
 
-- [ ] Bhava integration — personality-to-prosody mapping
+- [x] Bhava integration — personality-to-prosody mapping (v1.1.0, feature: `bhava-voice`)
 - [ ] Articulatory modeling — graduate from formant when demand justifies
 
 ---
