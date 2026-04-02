@@ -8,7 +8,7 @@
 //!
 //! Enable with:
 //! ```toml
-//! dhvani = { version = "0.22", features = ["g2p"] }
+//! dhvani = { version = "1", features = ["g2p"] }
 //! ```
 //!
 //! # Data Flow
@@ -23,6 +23,12 @@ use crate::buffer::AudioBuffer;
 
 /// G2P conversion engine with language-specific rules and dictionary lookup.
 pub use shabda::engine::{G2PEngine, Language};
+
+/// G2P conversion options (dictionary priority, fallback rules).
+pub use shabda::engine::ConvertOptions;
+
+/// Timing profile for phoneme duration scaling.
+pub use shabda::engine::TimingProfile;
 
 // ── Rules ──────────────────────────────────────────────────────────
 
@@ -61,6 +67,18 @@ pub use svara::sequence::PhonemeEvent;
 pub use svara::sequence::PhonemeSequence;
 
 // ── Error ──────────────────────────────────────────────────────────
+
+// ── Heteronym disambiguation ──────────────────────────────────────
+
+/// Heteronym disambiguation rules and context-based variant selection.
+pub use shabda::heteronym;
+
+// ── SSML ──────────────────────────────────────────────────────────
+
+/// SSML subset parser for speech synthesis markup.
+pub use shabda::ssml;
+
+// ── Error ─────────────────────────────────────────────────────────
 
 /// Shabda error type.
 pub use shabda::error::ShabdaError;
@@ -150,5 +168,102 @@ mod tests {
         let voice = svara::voice::VoiceProfile::new_male();
         let buf = crate::voice_synth::render_sequence(&seq, &voice, 44100).unwrap();
         assert!(buf.frames() > 0);
+    }
+
+    // ── v2 bridge tests ────────────────────────────────────────────
+
+    #[test]
+    fn convert_options_builder() {
+        let opts = ConvertOptions::new()
+            .with_emphasis(true)
+            .with_speaking_rate(120.0);
+        assert!(opts.emphasis);
+        assert_eq!(opts.speaking_rate_wpm, Some(120.0));
+    }
+
+    #[test]
+    fn timing_profile_creation() {
+        let profile = TimingProfile::new(1.3, 1.0, 1.5);
+        assert!((profile.vowel_scale - 1.3).abs() < f32::EPSILON);
+        assert!((profile.pause_scale - 1.5).abs() < f32::EPSILON);
+
+        let default = TimingProfile::default();
+        assert!((default.vowel_scale - 1.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn heteronym_lookup() {
+        let rule = heteronym::lookup("read");
+        assert!(rule.is_some());
+        let rule = rule.unwrap();
+        assert_eq!(rule.word, "read");
+        assert!(!rule.triggers.is_empty());
+    }
+
+    #[test]
+    fn heteronym_select_variant_default() {
+        let rule = heteronym::lookup("read").unwrap();
+        // No trigger words → default variant
+        assert_eq!(heteronym::select_variant(rule, &["the", "book"]), 0);
+    }
+
+    #[test]
+    fn heteronym_select_variant_triggered() {
+        let rule = heteronym::lookup("read").unwrap();
+        // "to" triggers non-default variant
+        assert_eq!(heteronym::select_variant(rule, &["want", "to"]), 1);
+    }
+
+    #[test]
+    fn heteronym_unknown_word() {
+        assert!(heteronym::lookup("hello").is_none());
+    }
+
+    #[test]
+    fn ssml_parse_plain_text() {
+        let nodes = ssml::parse("hello world").unwrap();
+        assert_eq!(nodes.len(), 1);
+        assert!(matches!(&nodes[0], ssml::SsmlNode::Text(t) if t == "hello world"));
+    }
+
+    #[test]
+    fn ssml_parse_break() {
+        let nodes = ssml::parse("hello <break time=\"500ms\"/> world").unwrap();
+        assert_eq!(nodes.len(), 3);
+        assert!(matches!(
+            &nodes[1],
+            ssml::SsmlNode::Break { duration_ms: 500 }
+        ));
+    }
+
+    #[test]
+    fn ssml_parse_emphasis() {
+        let nodes = ssml::parse("<emphasis level=\"strong\">important</emphasis>").unwrap();
+        assert_eq!(nodes.len(), 1);
+        assert!(matches!(
+            &nodes[0],
+            ssml::SsmlNode::Emphasis {
+                level: ssml::EmphasisLevel::Strong,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn ssml_parse_prosody() {
+        let nodes = ssml::parse("<prosody rate=\"fast\">quick</prosody>").unwrap();
+        assert_eq!(nodes.len(), 1);
+        assert!(matches!(
+            &nodes[0],
+            ssml::SsmlNode::Prosody {
+                rate: Some(ssml::SpeakingRate::Fast),
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn ssml_speaking_rate_wpm() {
+        assert!((ssml::SpeakingRate::Medium.wpm() - 150.0).abs() < f32::EPSILON);
     }
 }

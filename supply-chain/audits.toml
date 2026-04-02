@@ -46,6 +46,11 @@ who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.0.0"
 
+[[audits.garjan]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.1.0"
+
 [[audits.ghurni]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-deploy"
@@ -71,10 +76,20 @@ who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.3.0"
 
+[[audits.hisab]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.4.0"
+
 [[audits.js-sys]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-run"
 version = "0.3.92"
+
+[[audits.js-sys]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-run"
+version = "0.3.94"
 
 [[audits.libm]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
@@ -126,7 +141,22 @@ who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.1.0"
 
+[[audits.serde_spanned]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.1.1"
+
 [[audits.shabda]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.0.0"
+
+[[audits.shabda]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "2.0.0"
+
+[[audits.shabdakosh]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.0.0"
@@ -134,14 +164,34 @@ version = "1.0.0"
 [[audits.shabdakosh]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-deploy"
-version = "1.0.0"
+version = "2.0.0"
 
 [[audits.svara]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.1.0"
 
+[[audits.svara]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.1.1"
+
+[[audits.svara]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "2.0.0"
+
 [[audits.toml_parser]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.1.0+spec-1.1.0"
+
+[[audits.toml_parser]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.1.1+spec-1.1.0"
+
+[[audits.toml_writer]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.1.0+spec-1.1.0"
@@ -149,7 +199,7 @@ version = "1.1.0+spec-1.1.0"
 [[audits.toml_writer]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-deploy"
-version = "1.1.0+spec-1.1.0"
+version = "1.1.1+spec-1.1.0"
 
 [[audits.unicode-segmentation]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
@@ -161,7 +211,22 @@ who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-run"
 version = "0.2.115"
 
+[[audits.wasm-bindgen]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-run"
+version = "0.2.117"
+
 [[audits.wasm-bindgen-macro]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-run"
+version = "0.2.115"
+
+[[audits.wasm-bindgen-macro]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-run"
+version = "0.2.117"
+
+[[audits.wasm-bindgen-macro-support]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-run"
 version = "0.2.115"
@@ -169,17 +234,27 @@ version = "0.2.115"
 [[audits.wasm-bindgen-macro-support]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-run"
-version = "0.2.115"
+version = "0.2.117"
 
 [[audits.wasm-bindgen-shared]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-run"
 version = "0.2.115"
 
+[[audits.wasm-bindgen-shared]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-run"
+version = "0.2.117"
+
 [[audits.web-sys]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-run"
 version = "0.3.92"
+
+[[audits.web-sys]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-run"
+version = "0.3.94"
 
 [[audits.winapi]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
@@ -195,6 +270,11 @@ version = "0.4.0"
 who = "Robert MacCracken <robert.maccracken@gmail.com>"
 criteria = "safe-to-run"
 version = "0.4.0"
+
+[[audits.winnow]]
+who = "Robert MacCracken <robert.maccracken@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.0.1"
 
 [[audits.zerocopy]]
 who = "Robert MacCracken <robert.maccracken@gmail.com>"

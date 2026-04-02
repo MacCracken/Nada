@@ -7,7 +7,7 @@
 //!
 //! Enable with:
 //! ```toml
-//! dhvani = { version = "0.22", features = ["mechanical"] }
+//! dhvani = { version = "1", features = ["mechanical"] }
 //! ```
 //!
 //! # Architecture

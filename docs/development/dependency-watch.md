@@ -16,13 +16,13 @@ Direct dependencies to monitor for updates, CVEs, and breaking changes.
 | Crate | Version | Feature | Notes |
 |-------|---------|---------|-------|
 | **naad** | 1.0.0 | `synthesis` | AGNOS synthesis crate — coordinate with svara |
-| **svara** | 1.1.0 | `voice` | AGNOS voice synthesis — depends on naad |
+| **svara** | 2.0.0 | `voice` | AGNOS voice synthesis — depends on naad |
 | **goonj** | 1.1.0 | `acoustics` | AGNOS acoustics — depends on hisab |
 | **prani** | 1.1.0 | `creature` | AGNOS creature vocals |
 | **garjan** | 1.0.0 | `environment` | AGNOS environmental sounds — depends on naad |
 | **ghurni** | 1.0.0 | `mechanical` | AGNOS mechanical sounds — depends on naad |
 | **nidhi** | 1.1.0 | `sampler` | AGNOS sample playback |
-| **shabda** | 1.0.0 | `g2p` | AGNOS grapheme-to-phoneme |
+| **shabda** | 2.0.0 | `g2p` | AGNOS grapheme-to-phoneme — depends on shabdakosh, svara |
 | **rayon** | 1 | `parallel` | Stable, well-maintained |
 | **pipewire** | 0.9 | `pipewire` | Rust bindings — track upstream PipeWire releases |
 

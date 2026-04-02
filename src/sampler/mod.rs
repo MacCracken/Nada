@@ -6,7 +6,7 @@
 //!
 //! Enable with:
 //! ```toml
-//! dhvani = { version = "0.22", features = ["sampler"] }
+//! dhvani = { version = "1", features = ["sampler"] }
 //! ```
 //!
 //! # Architecture
